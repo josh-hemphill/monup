@@ -1,0 +1,14 @@
+{
+	"version": "0.2",
+	"language": "en",
+	"words": [],
+	"flagWords": [
+		"hte"
+	],
+	"ignorePaths": [
+		"package.json",
+		"pnpm-lock.yaml",
+		"tsconfig.json",
+		"node_modules/**"
+	]
+}

@@ -1,0 +1,2 @@
+- Commit and tag signing support
+- Add status badges to package READMEs

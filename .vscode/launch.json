@@ -1,0 +1,39 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch Program",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"program": "${workspaceFolder}\\packages\\release\\src\\detector.ts",
+			"outFiles": [
+				"${workspaceFolder}/**/*.js"
+			]
+		},
+		{
+			"name": "Debug Vitest",
+			"type": "node",
+			"request": "launch",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": [
+				"run",
+				"test"
+			],
+			"args": [
+				"--inspect-brk",
+				"--no-file-parallelism",
+				"--testTimeout=0",
+				"packages/release/test/detector.test.ts"
+			],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"autoAttachChildProcesses": true
+		}
+	]
+}

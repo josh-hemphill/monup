@@ -1,0 +1,25 @@
+{
+	"name": "@monup/changelog",
+	"type": "module",
+	"version": "0.0.1",
+	"private": true,
+	"exports": {
+		"types": "./dist/index.d.mts",
+		"typescript": "./src/index.ts"
+	},
+	"main": "dist/index.mjs",
+	"types": "dist/index.d.mts",
+	"scripts": {
+		"build": "node build.config.ts",
+		"test": "vitest run",
+		"lint": "eslint .",
+		"format": "eslint . --fix"
+	},
+	"dependencies": {
+		"@monup/git": "workspace:*",
+		"loglevel": "catalog:logging"
+	},
+	"devDependencies": {
+		"obuild": "catalog:build"
+	}
+}

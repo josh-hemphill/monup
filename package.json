@@ -1,0 +1,42 @@
+{
+	"name": "@monup/root",
+	"type": "module",
+	"version": "0.0.1",
+	"private": true,
+	"packageManager": "pnpm@10.25.0",
+	"author": "",
+	"license": "ISC",
+	"keywords": [],
+	"scripts": {
+		"build": "pnpm -r build",
+		"lint": "eslint .",
+		"format": "eslint . --fix",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"c12": "catalog:cli",
+		"cac": "catalog:cli",
+		"convert-gitmoji": "catalog:cli",
+		"escalade": "catalog:cli",
+		"jsonc-parser": "catalog:cli",
+		"loglevel": "catalog:logging",
+		"package-manager-detector": "catalog:cli",
+		"semver": "catalog:cli",
+		"zx": "catalog:cli"
+	},
+	"devDependencies": {
+		"@antfu/eslint-config": "catalog:dev",
+		"@types/fs-extra": "catalog:types",
+		"@types/node": "catalog:types",
+		"arkregex": "catalog:dev",
+		"cspell": "catalog:dev",
+		"eslint": "catalog:dev",
+		"eslint-plugin-format": "catalog:dev",
+		"eslint-plugin-import": "catalog:dev",
+		"gh-pages": "catalog:dev",
+		"markdownlint-cli2": "catalog:dev",
+		"obuild": "catalog:build",
+		"typescript": "catalog:types",
+		"vitest": "catalog:dev"
+	}
+}
