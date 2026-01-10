@@ -11,6 +11,7 @@ import { resolveReleaseOptions } from './options.ts';
 
 export const _VERSION: string = packageJson.version;
 export { logger } from './logger.ts';
+export type { ReleaseOptions, ReleaseOptionsWithDeps, ResolvedReleaseOptions } from './options.ts';
 
 /**
  * Publishes a package
@@ -32,5 +33,5 @@ export async function publish(
 	await executePublish(pkg.path, config, shouldDryRun, resolvedOptions.publishArgs);
 }
 
-export type { ReleaseOptions, ReleaseOptionsWithDeps, ResolvedReleaseOptions } from './options.ts';
-export { defaultReleaseOptions } from './options.ts';
+export { defaultReleaseOptions, resolveReleaseOptions } from './options.ts';
+export { listPublishedVersions } from './registry.ts';

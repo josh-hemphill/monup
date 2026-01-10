@@ -1,4 +1,5 @@
 import type { PackageInfo } from '../plugins/index.ts';
+import { extractPackageName, parseJsonc } from '@monup/utils';
 import { fs, path } from 'zx';
 
 export interface JsrJson {
@@ -15,10 +16,9 @@ export async function getJsrJson(packagePath: string, root: string): Promise<Pac
 		}
 		try {
 			const content = await fs.readFile(jsrJsonPath, 'utf-8');
-			const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-			const config = JSON.parse(jsonContent) as JsrJson;
+			const config = parseJsonc<JsrJson>(content);
 			return {
-				name: typeof config.name === 'string' ? config.name : packagePath,
+				name: extractPackageName(config.name, packagePath),
 				path: packagePath,
 				root,
 				packageFile: jsrJsonPath,

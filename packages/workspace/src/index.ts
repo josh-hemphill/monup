@@ -2,10 +2,9 @@ import type { PackageInfo } from './plugins/index.ts';
 /**
  * Workspace package detection and management
  */
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { cwd } from 'node:process';
+import { fs } from 'zx';
 import { updateVersionInFile } from '@monup/version';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { logger } from './logger.ts';

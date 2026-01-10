@@ -1,5 +1,18 @@
+import type { ChangelogOptions } from '@monup/changelog';
 import type { ParsedCommit } from '@monup/git';
+import type { GitHubOptions } from '@monup/github';
+import type { ReleaseOptions } from '@monup/release';
+import type { PackageInfo } from '@monup/workspace';
 import type { CommitTypeMapping } from './calculator.ts';
+import { getLatestVersionFromChangelog } from '@monup/changelog';
+import {
+	extractVersionFromScopedTag,
+	extractVersionFromTagByStrategy,
+	getLastPackageTag,
+	getLastTag,
+} from '@monup/git';
+import { defaultGitHubOptions, listReleases } from '@monup/github';
+import { listPublishedVersions, resolveReleaseOptions } from '@monup/release';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { calculateBumpType, calculateNextVersion, getCurrentVersion } from './calculator.ts';
 import { logger } from './logger.ts';
@@ -81,6 +94,156 @@ export async function updateVersionInAdditionalFiles(
 	logger.trace('Additional files', { files });
 	await updateVersionInFiles(files, oldVersion, newVersion);
 	logger.debug('Additional files updated successfully');
+}
+
+/**
+ * Options for getPreviousVersion function
+ */
+export interface PreviousVersionOptions {
+	/**
+	 * Git tag strategy ('package' for scoped tags, 'global' for shared tags)
+	 */
+	tagStrategy?: 'package' | 'global';
+	/**
+	 * Tag template (e.g., 'v%s')
+	 */
+	tagTemplate?: string;
+	/**
+	 * Changelog options for reading versions from changelog
+	 */
+	changelog?: ChangelogOptions;
+	/**
+	 * Release options for querying registries
+	 */
+	release?: ReleaseOptions;
+	/**
+	 * GitHub options for querying releases
+	 */
+	github?: GitHubOptions;
+	/**
+	 * Changelog file path (optional, will be resolved from options if not provided)
+	 */
+	changelogPath?: string;
+}
+
+/**
+ * Gets the previous version for a package by trying multiple sources
+ * Tries in order: package file, git tags, registry, changelog, GitHub releases
+ * @param pkg - Package info
+ * @param options - Options for version resolution
+ * @returns Previous version string or undefined if not found
+ */
+export async function getPreviousVersion(
+	pkg: PackageInfo,
+	options: PreviousVersionOptions = {},
+): Promise<string | undefined> {
+	logger.debug('Getting previous version', { package: pkg.name });
+
+	// 1. Try package file (current version)
+	if (typeof pkg.packageFile === 'string') {
+		const currentVersion = await getCurrentVersionFromFile(pkg.packageFile);
+		if (typeof currentVersion === 'string') {
+			logger.debug('Found version in package file', { package: pkg.name, version: currentVersion });
+			return currentVersion;
+		}
+	}
+
+	// 2. Try git tags (scoped if tagStrategy is 'package', global otherwise)
+	const tagStrategy = options.tagStrategy ?? 'global';
+	if (tagStrategy === 'package') {
+		const lastTag = await getLastPackageTag(pkg.name);
+		if (typeof lastTag === 'string') {
+			const version = extractVersionFromScopedTag(lastTag);
+			if (typeof version === 'string') {
+				logger.debug('Found version from scoped git tag', { package: pkg.name, version });
+				return version;
+			}
+		}
+	}
+	else {
+		const tagTemplate = options.tagTemplate;
+		const lastTag = await getLastTag(undefined, tagTemplate);
+		if (typeof lastTag === 'string') {
+			const version = extractVersionFromTagByStrategy(lastTag, tagStrategy, tagTemplate);
+			if (typeof version === 'string') {
+				logger.debug('Found version from git tag', { package: pkg.name, version });
+				return version;
+			}
+		}
+	}
+
+	// 3. Try registry (npm/JSR)
+	if (typeof options.release === 'object' && options.release !== null) {
+		try {
+			const resolvedReleaseOptions = resolveReleaseOptions(options.release);
+			const versions = await listPublishedVersions(pkg, resolvedReleaseOptions);
+			if (versions.length > 0) {
+				const latestVersion = versions[0];
+				logger.debug('Found version from registry', { package: pkg.name, version: latestVersion });
+				return latestVersion;
+			}
+		}
+		catch (error: unknown) {
+			logger.debug('Failed to query registry', {
+				package: pkg.name,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	// 4. Try changelog
+	if (typeof options.changelog === 'object' && options.changelog !== null) {
+		try {
+			const version = await getLatestVersionFromChangelog(
+				pkg.name,
+				options.changelog,
+				options.changelogPath,
+			);
+			if (typeof version === 'string') {
+				logger.debug('Found version from changelog', { package: pkg.name, version });
+				return version;
+			}
+		}
+		catch (error: unknown) {
+			logger.debug('Failed to read changelog', {
+				package: pkg.name,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	// 5. Try GitHub releases
+	if (typeof options.github === 'object' && options.github !== null) {
+		try {
+			const githubOptions = {
+				...defaultGitHubOptions,
+				...options.github,
+			};
+			const releases = await listReleases(githubOptions);
+			if (releases.length > 0) {
+				// Filter by package name if using scoped tags
+				const relevantReleases = tagStrategy === 'package'
+					? releases.filter((r) => r.tag_name.startsWith(`${pkg.name}@`))
+					: releases;
+
+				if (relevantReleases.length > 0) {
+					const latestRelease = relevantReleases[0];
+					const version = latestRelease.version;
+					logger.debug('Found version from GitHub releases', { package: pkg.name, version });
+					return version;
+				}
+			}
+		}
+		catch (error: unknown) {
+			logger.debug('Failed to query GitHub releases', {
+				package: pkg.name,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	logger.debug('No previous version found', { package: pkg.name });
+	return undefined;
 }
 
 export { defaultVersionOptions } from './options.ts';

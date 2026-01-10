@@ -19,6 +19,7 @@ import { handleChangelog } from './commands/changelog.ts';
 import { handleGithub } from './commands/github.ts';
 import { handleRelease } from './commands/release.ts';
 import { handleVersion } from './commands/version.ts';
+import { initCache, clearCache } from './cache.ts';
 
 const versions = [
 	`@monup/cli:${packageJson.version}`,
@@ -63,6 +64,9 @@ function configureLogLevels(options: ResolvedMonupOptions): void {
 }
 
 export function main(): void {
+	// Initialize cache at CLI start
+	initCache();
+
 	const cli = cac('monup');
 
 	cli
@@ -159,4 +163,8 @@ export function main(): void {
 	cli.version(`\n${versions.join('\n')}\n`);
 
 	cli.parse();
+
+	// Clear cache at CLI end (though this may not execute if process exits)
+	// Cache will be cleared on next CLI invocation via initCache
+	clearCache();
 }

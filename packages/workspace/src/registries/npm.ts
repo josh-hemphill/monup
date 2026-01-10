@@ -1,4 +1,5 @@
 import type { PackageInfo } from '../plugins/index.ts';
+import { extractPackageName, parseJson } from '@monup/utils';
 import { fs, path } from 'zx';
 
 export interface NpmJson {
@@ -13,9 +14,9 @@ export async function getNpmJson(packagePath: string, root: string): Promise<Pac
 	if (await fs.exists(packageJsonPath)) {
 		try {
 			const content = await fs.readFile(packageJsonPath, 'utf-8');
-			const pkg = JSON.parse(content) as NpmJson;
+			const pkg = parseJson<NpmJson>(content);
 			return {
-				name: typeof pkg.name === 'string' ? pkg.name : packagePath,
+				name: extractPackageName(pkg.name, packagePath),
 				path: packagePath,
 				root,
 				packageFile: packageJsonPath,

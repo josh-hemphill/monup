@@ -2,8 +2,8 @@ import type { VersionUpdater } from './plugins/index.ts';
 /**
  * Package file version updater
  */
-import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { fs } from 'zx';
 import { regex } from 'arkregex';
 
 /**
@@ -33,7 +33,7 @@ export async function updateVersionInFiles(
 ): Promise<void> {
 	for (const file of files) {
 		try {
-			const content = await readFile(resolve(file), 'utf-8');
+			const content = await fs.readFile(resolve(file), 'utf-8');
 			// Replace version patterns: v1.2.3, 1.2.3, version: "1.2.3", etc.
 			const patterns = [
 				regex(`\\bv${oldVersion.replace(/\./g, '\\.')}\\b`, 'g'),
@@ -48,7 +48,7 @@ export async function updateVersionInFiles(
 			}
 
 			if (updated !== content) {
-				await writeFile(resolve(file), updated, 'utf-8');
+				await fs.writeFile(resolve(file), updated, 'utf-8');
 			}
 		}
 		catch {

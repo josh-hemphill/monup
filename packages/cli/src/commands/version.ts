@@ -2,10 +2,11 @@
  * Version command handler
  */
 import type { ResolvedMonupOptions } from '@monup/options';
-import { createCommit, createTag, filterCommitsByPackage, formatTag, getCommits, getLastTag, pushToRemote } from '@monup/git';
+import { createCommit, createTag, filterCommitsByPackage, formatTag, getCommits, getLastPackageTag, getLastPackageTags, getLastTag, pushToRemote } from '@monup/git';
 import { calculateVersion, getCurrentVersionFromFile, updateVersionInAdditionalFiles, updateVersionInFile } from '@monup/version';
-import { detectPackages } from '@monup/workspace';
+import { getCachedCommits, setCachedCommits } from '../cache.ts';
 import { logger } from '../logger.ts';
+import { getPackagesWithCache } from '../package-utils.ts';
 
 /**
  * Handles the version command
@@ -15,22 +16,71 @@ export async function handleVersion(
 	bumpType?: 'major' | 'minor' | 'patch',
 ): Promise<void> {
 	logger.debug('Handling version command', { bumpType });
-	const packages = await detectPackages();
 
-	if (packages.length === 0) {
-		logger.error('No packages found in workspace');
+	const packages = await getPackagesWithCache();
+	if (typeof packages === 'undefined') {
 		return;
 	}
 
 	logger.debug('Processing packages', { count: packages.length, packages: packages.map((p) => p.name) });
 
-	// Get git commits since last tag
-	logger.debug('Getting last tag');
-	const lastTag = await getLastTag(options.git.tagFilter, options.git.tagTemplate);
-	logger.debug('Last tag determined', { lastTag });
-	logger.debug('Getting commits since last tag');
-	const commits = await getCommits(lastTag);
-	logger.debug('Commits retrieved', { count: commits.length });
+	// Get git commits since last tag (use cache if available)
+	// For per-package tag strategy, we need to get commits per package
+	let commits: Awaited<ReturnType<typeof getCommits>>;
+	const commitCacheKey = options.git.tagStrategy === 'package' ? 'perPackage' : 'global';
+	const cachedCommits = getCachedCommits(commitCacheKey);
+
+	if (typeof cachedCommits !== 'undefined') {
+		commits = cachedCommits;
+		logger.debug('Using cached commits');
+	}
+	else {
+		if (options.git.tagStrategy === 'package') {
+			// For per-package strategy, get commits from the earliest package tag
+			// Collect all package names first, then get all tags in one git call
+			const packageNames = packages.map((pkg) => pkg.name);
+			const packageTagMap = await getLastPackageTags(packageNames);
+
+			// We'll collect all commits across all packages
+			const allCommits: Awaited<ReturnType<typeof getCommits>> = [];
+			for (const pkg of packages) {
+				try {
+					const lastPackageTag = packageTagMap.get(pkg.name);
+					if (typeof lastPackageTag === 'string') {
+						const packageCommits = await getCommits(lastPackageTag);
+						// Merge commits, avoiding duplicates
+						for (const commit of packageCommits) {
+							if (!allCommits.some((c) => c.hash === commit.hash)) {
+								allCommits.push(commit);
+							}
+						}
+					}
+				}
+				catch (error: unknown) {
+					logger.debug('Failed to get commits from last package tag', {
+						package: pkg.name,
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
+			}
+			// If no package tags found, fall back to global tag
+			if (allCommits.length === 0) {
+				const lastTag = await getLastTag(undefined, options.git.tagTemplate, options.git.tagFilter);
+				commits = await getCommits(lastTag);
+			}
+			else {
+				commits = allCommits;
+			}
+		}
+		else {
+			// Global tag strategy
+			const lastTag = await getLastTag(undefined, options.git.tagTemplate, options.git.tagFilter);
+			logger.debug('Last tag determined', { lastTag });
+			commits = await getCommits(lastTag);
+		}
+		setCachedCommits(commitCacheKey, commits);
+		logger.debug('Commits retrieved', { count: commits.length });
+	}
 
 	// Process each package
 	for (const pkg of packages) {
@@ -49,10 +99,38 @@ export async function handleVersion(
 		logger.debug('Current version retrieved', { package: pkg.name, version: currentVersion });
 
 		// Filter commits for this package
-		logger.debug('Filtering commits for package', { package: pkg.name });
-		const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
-		const packageCommits = packageCommitsMap.get(pkg.name);
-		const commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+		// For per-package tag strategy, get commits since last package tag
+		let commitsList: Awaited<ReturnType<typeof getCommits>>;
+		if (options.git.tagStrategy === 'package') {
+			try {
+				const lastPackageTag = await getLastPackageTag(pkg.name);
+				if (typeof lastPackageTag === 'string') {
+					commitsList = await getCommits(lastPackageTag);
+				}
+				else {
+					// No previous tag for this package, use all commits
+					const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
+					const packageCommits = packageCommitsMap.get(pkg.name);
+					commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+				}
+			}
+			catch (error: unknown) {
+				logger.debug('Failed to get last package tag', {
+					package: pkg.name,
+					error: error instanceof Error ? error.message : String(error),
+				});
+				// Fallback to filtered commits
+				const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
+				const packageCommits = packageCommitsMap.get(pkg.name);
+				commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+			}
+		}
+		else {
+			// Global tag strategy - filter commits for this package
+			const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
+			const packageCommits = packageCommitsMap.get(pkg.name);
+			commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+		}
 		logger.debug('Package commits filtered', { package: pkg.name, count: commitsList.length });
 
 		// Calculate next version

@@ -26,20 +26,26 @@ export function contextualizePublishCommand(command: DetectResult, publishType: 
 		if (executeWrapper) {
 			return executeWrapper;
 		}
-	}
-	if (publishType === 'npm') {
-		if (command.name === 'deno') {
-			const executeWrapper = resolveCommand(command.agent, 'execute', ['npm', 'publish']);
-			if (executeWrapper) {
-				return executeWrapper;
-			}
+		else {
+			throw new Error(`No execute wrapper found for ${command.name}`);
 		}
-		return {
-			command: command.name,
-			args: ['publish'],
-		};
 	}
-	throw new Error(`Unknown publish type: ${publishType}`);
+	else if (publishType === 'npm') {
+		// For npm-compatible package managers (npm, pnpm, yarn), use their native publish command
+		if (command.name === 'npm' || command.name === 'pnpm' || command.name === 'yarn') {
+			return {
+				command: command.name,
+				args: ['publish'],
+			};
+		}
+		// For other package managers (e.g., deno), use execute wrapper
+		const executeWrapper = resolveCommand(command.agent, 'execute', ['npm', 'publish']);
+		if (executeWrapper) {
+			return executeWrapper;
+		}
+		throw new Error(`No execute wrapper found for ${command.name}`);
+	}
+	throw new Error(`Unknown publish type: ${publishType as string}`);
 }
 
 /**

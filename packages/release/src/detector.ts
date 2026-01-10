@@ -6,11 +6,10 @@
 import type { PackageInfo } from '@monup/workspace';
 import type { AgentName, DetectResult } from 'package-manager-detector';
 import type { ResolvedReleaseOptions } from './options.ts';
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { parseJson, parseJsonc } from '@monup/utils';
 import { detect } from 'package-manager-detector';
-import { $, glob, path, which } from 'zx';
+import { $, fs, glob, path, which } from 'zx';
 import { logger } from './logger.ts';
 import { resolveAgent } from './pmd-internals.ts';
 
@@ -123,9 +122,9 @@ async function analyzeWorkspace(
 
 	// Check for pnpm-workspace.yaml
 	const pnpmWorkspaceFile = resolve(workspaceRoot, 'pnpm-workspace.yaml');
-	if (existsSync(pnpmWorkspaceFile)) {
+	if (await fs.exists(pnpmWorkspaceFile)) {
 		try {
-			const content = await readFile(pnpmWorkspaceFile, 'utf-8');
+			const content = await fs.readFile(pnpmWorkspaceFile, 'utf-8');
 			const lines = content.split('\n');
 			let inPackages = false;
 			const patterns: string[] = [];
@@ -160,14 +159,14 @@ async function analyzeWorkspace(
 
 	// Check for package.json with workspaces field
 	const packageJsonPath = resolve(workspaceRoot, 'package.json');
-	if (existsSync(packageJsonPath)) {
+	if (await fs.exists(packageJsonPath)) {
 		try {
-			const content = await readFile(packageJsonPath, 'utf-8');
-			const pkg = JSON.parse(content) as {
+			const content = await fs.readFile(packageJsonPath, 'utf-8');
+			const pkg = parseJson<{
 				workspaces?: string[] | { packages?: string[] };
 				packageManager?: string;
 				[key: string]: unknown;
-			};
+			}>(content);
 
 			const workspaces = Array.isArray(pkg.workspaces)
 				? pkg.workspaces
@@ -200,14 +199,13 @@ async function analyzeWorkspace(
 
 	// Check for deno.json with workspace field
 	const denoJsonPath = resolve(workspaceRoot, 'deno.json');
-	if (existsSync(denoJsonPath)) {
+	if (await fs.exists(denoJsonPath)) {
 		try {
-			const content = await readFile(denoJsonPath, 'utf-8');
-			const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-			const config = JSON.parse(jsonContent) as {
+			const content = await fs.readFile(denoJsonPath, 'utf-8');
+			const config = parseJsonc<{
 				workspace?: string[] | { packages?: string[] };
 				[key: string]: unknown;
-			};
+			}>(content);
 
 			const workspaces = Array.isArray(config.workspace)
 				? config.workspace
@@ -280,8 +278,10 @@ async function checkExplicitOverride(
 			command: pkgManager,
 			version,
 		});
-		const agent = resolveAgent({ name: pkgManager, ver: version }) as DetectResult;
-		return agent;
+		const agent = resolveAgent({ name: pkgManager, ver: version });
+		if (agent !== null) {
+			return agent;
+		}
 	}
 
 	if (ctx.strict) {
@@ -310,8 +310,10 @@ async function checkWorkspaceContext(
 	if (typeof workspaceManager === 'string') {
 		const command = await getCommandAvailability(workspaceManager, ctx.excludedCommands);
 		if (typeof command === 'string') {
-			const agent = resolveAgent({ name: workspaceManager, ver: undefined }) as DetectResult;
-			return agent;
+			const agent = resolveAgent({ name: workspaceManager, ver: undefined });
+			if (agent !== null) {
+				return agent;
+			}
 		}
 	}
 	return undefined;
@@ -328,12 +330,14 @@ async function checkJsrDenoPreference(
 	}
 
 	const denoJsonPath = join(ctx.pkg.path, 'deno.json');
-	if (existsSync(denoJsonPath)) {
+	if (await fs.exists(denoJsonPath)) {
 		const deno = await getCommandAvailability('deno', ctx.excludedCommands);
 		if (typeof deno === 'string') {
 			const version = await getCommandRunVersion(deno);
-			const agent = resolveAgent({ name: 'deno', ver: version }) as DetectResult;
-			return agent;
+			const agent = resolveAgent({ name: 'deno', ver: version });
+			if (agent !== null) {
+				return agent;
+			}
 		}
 	}
 	return undefined;
@@ -383,8 +387,10 @@ async function checkCommandAvailability(
 			const available = await getCommandAvailability(cmd, ctx.excludedCommands);
 			if (typeof available === 'string') {
 				const version = await getCommandRunVersion(available);
-				const agent = resolveAgent({ name: cmd, ver: version }) as DetectResult;
-				return agent;
+				const agent = resolveAgent({ name: cmd, ver: version });
+				if (agent !== null) {
+					return agent;
+				}
 			}
 		}
 	}
@@ -450,10 +456,7 @@ export async function detectPackageManager(
 
 	// Fallback: error
 	if (strict) {
-		const errorMsg = ctx.publishType === 'jsr'
-			? 'No package manager available. Install deno or an npm-compatible manager (npm, pnpm, yarn).'
-			: 'No package manager available. Install one of: npm, pnpm, yarn, or deno.';
-		throw new Error(errorMsg);
+		throw new Error('No package manager available. Install deno or an npm-compatible manager (npm, pnpm, yarn).');
 	}
 
 	throw new Error('No package manager available');

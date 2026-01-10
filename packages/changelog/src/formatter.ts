@@ -12,12 +12,11 @@ export function formatCommitMessage(
 	commit: ParsedCommit,
 	options: ChangelogOptions,
 ): string {
-	const message = typeof commit.subject === 'string' ? commit.subject : commit.message;
+	let message = typeof commit.subject === 'string' ? commit.subject : commit.message;
 
 	// Capitalize if enabled
 	if (options.capitalize && message.length > 0) {
-		const capitalized = message.charAt(0).toUpperCase() + message.slice(1);
-		return capitalized;
+		message = message.charAt(0).toUpperCase() + message.slice(1);
 	}
 
 	const scopeMap = options.scopeMap ?? {};
@@ -25,7 +24,7 @@ export function formatCommitMessage(
 	// Apply scope mapping
 	if (typeof commit.scope === 'string' && typeof scopeMap[commit.scope] === 'string') {
 		const mappedScope = scopeMap[commit.scope];
-		return message.replace(
+		message = message.replace(
 			regex(`^${commit.scope}:`, 'i'),
 			`${mappedScope}:`,
 		);

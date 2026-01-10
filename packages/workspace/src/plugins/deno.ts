@@ -2,6 +2,7 @@ import type { PackageInfo, WorkspaceDetector } from './index.ts';
 /**
  * Deno workspace detector
  */
+import { extractPackageName, parseJsonc } from '@monup/utils';
 import { fs, glob, path } from 'zx';
 import { getJsrJson } from '../registries/jsr.ts';
 
@@ -21,8 +22,7 @@ export class DenoWorkspaceDetector implements WorkspaceDetector {
 
 		try {
 			const content = await fs.readFile(denoJsonPath, 'utf-8');
-			const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-			const config = JSON.parse(jsonContent) as DenoJson;
+			const config = parseJsonc<DenoJson>(content);
 			return Array.isArray(config.workspace) || typeof config.workspace === 'object';
 		}
 		catch {
@@ -33,8 +33,7 @@ export class DenoWorkspaceDetector implements WorkspaceDetector {
 	async detectPackages(root: string): Promise<PackageInfo[]> {
 		const denoJsonPath = path.resolve(root, 'deno.json');
 		const content = await fs.readFile(denoJsonPath, 'utf-8');
-		const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-		const config = JSON.parse(jsonContent) as DenoJson;
+		const config = parseJsonc<DenoJson>(content);
 
 		const workspaces = Array.isArray(config.workspace)
 			? config.workspace
@@ -85,10 +84,9 @@ export async function getDenoJson(packagePath: string, root: string): Promise<Pa
 	if (await fs.exists(denoJsonPath)) {
 		try {
 			const content = await fs.readFile(denoJsonPath, 'utf-8');
-			const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-			const config = JSON.parse(jsonContent) as DenoJson;
+			const config = parseJsonc<DenoJson>(content);
 			return {
-				name: typeof config.name === 'string' ? config.name : packagePath,
+				name: extractPackageName(config.name, packagePath),
 				path: packagePath,
 				root,
 				packageFile: denoJsonPath,

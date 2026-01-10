@@ -101,3 +101,20 @@ export async function resolveOptions(
 export { defaultOptions } from './defaults.ts';
 export { logger } from './logger.ts';
 export type { MonupOptions, ResolvedMonupOptions } from './types.ts';
+
+/**
+ * Helper function for type-safe monup configuration files
+ * Use this in monup.config.ts for autocomplete and type checking
+ * @example
+ * ```typescript
+ * import { defineConfig } from '@monup/options';
+ *
+ * export default defineConfig({
+ *   git: { tagStrategy: 'package' },
+ *   release: { dryRun: 'auto' },
+ * });
+ * ```
+ */
+export function defineConfig(config: MonupOptions): MonupOptions {
+	return config;
+}

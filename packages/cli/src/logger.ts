@@ -1,7 +1,8 @@
 /**
  * Logger for @monup/cli package
  */
-import loglevel from 'loglevel';
+import type { Logger } from 'loglevel';
+import { createLogger } from '@monup/utils';
 import packageJson from '../jsr.json' with { type: 'json' };
 
-export const logger = loglevel.getLogger(packageJson.name);
+export const logger: Logger = createLogger(packageJson.name);

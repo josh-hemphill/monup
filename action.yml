@@ -1,0 +1,85 @@
+name: Monup
+description: Monorepo version management, changelog generation, and publishing
+author: monup
+branding:
+  icon: package
+  color: blue
+
+inputs:
+  command:
+    description: 'Command to run: version, changelog, release, github, or all'
+    required: true
+    default: all
+  dry-run:
+    description: Perform dry run only (no publishing or changes)
+    required: false
+    default: 'false'
+  log-level:
+    description: 'Log level: trace, debug, info, warn, error, silent'
+    required: false
+    default: info
+  working-directory:
+    description: Working directory for monup operations
+    required: false
+    default: .
+  auth-mode:
+    description: 'Authentication mode: token (default, for first publish) or oidc (after trusted publishing configured)'
+    required: false
+    default: token
+  npm-token:
+    description: NPM auth token (required when auth-mode is token)
+    required: false
+  provenance:
+    description: 'Enable npm provenance attestation (only with auth-mode: oidc)'
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Configure npm auth (token mode)
+      if: inputs.auth-mode == 'token' && inputs.npm-token != ''
+      shell: bash
+      run: |
+        echo "//registry.npmjs.org/:_authToken=${{ inputs.npm-token }}" >> ~/.npmrc
+
+    - name: Run monup
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        # Token auth: set NODE_AUTH_TOKEN for npm
+        NODE_AUTH_TOKEN: ${{ inputs.auth-mode == 'token' && inputs.npm-token || '' }}
+        # OIDC auth: npm will use the id-token automatically when provenance is enabled
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        # Build command arguments
+        ARGS="${{ inputs.command }}"
+
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          ARGS="$ARGS --dry-run"
+        fi
+
+        if [ "${{ inputs.log-level }}" != "" ]; then
+          ARGS="$ARGS --log-level ${{ inputs.log-level }}"
+        fi
+
+        # Add provenance flag for OIDC mode
+        if [ "${{ inputs.auth-mode }}" = "oidc" ] && [ "${{ inputs.provenance }}" = "true" ]; then
+          echo "Using OIDC authentication with provenance"
+        fi
+
+        # Run monup - detect available package runner
+        if command -v pnpm &> /dev/null; then
+          pnpm dlx @monup/cli $ARGS
+        elif command -v npx &> /dev/null; then
+          npx @monup/cli $ARGS
+        elif command -v yarn &> /dev/null; then
+          yarn dlx @monup/cli $ARGS
+        elif command -v bunx &> /dev/null; then
+          bunx @monup/cli $ARGS
+        elif command -v deno &> /dev/null; then
+          deno x @monup/cli $ARGS
+        else
+          echo "Error: No package runner found (pnpm, npm, yarn, or bun required)"
+          exit 1
+        fi

@@ -1,5 +1,6 @@
 import type { NpmJson } from '../registries/npm.ts';
 import type { PackageInfo, WorkspaceDetector } from './index.ts';
+import { parseJson } from '@monup/utils';
 import { fs, glob, path } from 'zx';
 import { getJsrJson } from '../registries/jsr.ts';
 import { getNpmJson } from '../registries/npm.ts';
@@ -13,7 +14,7 @@ export class NpmWorkspaceDetector implements WorkspaceDetector {
 
 		try {
 			const content = await fs.readFile(packageJsonPath, 'utf-8');
-			const pkg = JSON.parse(content) as NpmJson;
+			const pkg = parseJson<NpmJson>(content);
 			return Array.isArray(pkg.workspaces) || typeof pkg.workspaces === 'object';
 		}
 		catch {
@@ -24,7 +25,7 @@ export class NpmWorkspaceDetector implements WorkspaceDetector {
 	async detectPackages(root: string): Promise<PackageInfo[]> {
 		const packageJsonPath = path.resolve(root, 'package.json');
 		const content = await fs.readFile(packageJsonPath, 'utf-8');
-		const pkg = JSON.parse(content) as NpmJson;
+		const pkg = parseJson<NpmJson>(content);
 
 		const workspaces = Array.isArray(pkg.workspaces)
 			? pkg.workspaces

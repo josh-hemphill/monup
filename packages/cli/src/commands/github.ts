@@ -5,17 +5,15 @@ import type { ResolvedMonupOptions } from '@monup/options';
 import { formatTag } from '@monup/git';
 import { createRelease } from '@monup/github';
 import { getCurrentVersionFromFile } from '@monup/version';
-import { detectPackages } from '@monup/workspace';
 import { logger } from '../logger.ts';
+import { getPackagesWithCache } from '../package-utils.ts';
 
 /**
  * Handles the github command
  */
 export async function handleGithub(options: ResolvedMonupOptions): Promise<void> {
-	const packages = await detectPackages();
-
-	if (packages.length === 0) {
-		logger.error('No packages found in workspace');
+	const packages = await getPackagesWithCache();
+	if (typeof packages === 'undefined') {
 		return;
 	}
 

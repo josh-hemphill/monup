@@ -3,13 +3,15 @@ import type { ChangelogOptions } from './options.ts';
 /**
  * Changelog generation from conventional commits
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { cwd } from 'node:process';
+import { dirname } from 'node:path';
+import { sortVersionsDescending } from '@monup/utils';
+import { fs } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { formatChangelogSections, groupCommits } from './formatter.ts';
 import { logger } from './logger.ts';
-import { createVersionMarkers, extractVersionChangelog } from './markers.ts';
+import { createVersionMarkers, extractVersionChangelog, findVersionMarkers } from './markers.ts';
+import { resolveChangelogPath } from './path-resolver.ts';
+import { resolveVersionWithFallback } from './version-utils.ts';
 
 export { formatChangelogSections, formatCommitMessage, groupCommits } from './formatter.ts';
 export { logger } from './logger.ts';
@@ -30,7 +32,7 @@ export async function generateChangelog(
 	logger.debug('Generating changelog', { version, packageName, commitCount: commits.length });
 	const changelogOpts: ChangelogOptions = options;
 	const defaultLocation = typeof changelogOpts.location === 'string' ? changelogOpts.location : 'CHANGELOG.md';
-	const changelogLocation = typeof changelogPath === 'string' ? changelogPath : resolve(cwd(), defaultLocation);
+	const changelogLocation = resolveChangelogPath(changelogPath, defaultLocation);
 	logger.trace('Changelog location', { changelogLocation });
 
 	// Group commits
@@ -52,7 +54,7 @@ export async function generateChangelog(
 	// Read existing changelog if it exists
 	let existingContent = '';
 	try {
-		existingContent = await readFile(changelogLocation, 'utf-8');
+		existingContent = await fs.readFile(changelogLocation, 'utf-8');
 		logger.trace('Read existing changelog', { length: existingContent.length });
 	}
 	catch {
@@ -67,8 +69,8 @@ export async function generateChangelog(
 
 	// Write changelog
 	logger.debug('Writing changelog', { changelogLocation });
-	await mkdir(dirname(changelogLocation), { recursive: true });
-	await writeFile(changelogLocation, updatedContent, 'utf-8');
+	await fs.mkdir(dirname(changelogLocation), { recursive: true });
+	await fs.writeFile(changelogLocation, updatedContent, 'utf-8');
 	logger.debug('Changelog written successfully');
 
 	return content;
@@ -85,10 +87,10 @@ export async function extractChangelogForVersion(
 ): Promise<string | undefined> {
 	const changelogOpts: ChangelogOptions = options;
 	const defaultLocation = typeof changelogOpts.location === 'string' ? changelogOpts.location : 'CHANGELOG.md';
-	const changelogLocation = typeof changelogPath === 'string' ? changelogPath : resolve(cwd(), defaultLocation);
+	const changelogLocation = resolveChangelogPath(changelogPath, defaultLocation);
 
 	try {
-		const content = await readFile(changelogLocation, 'utf-8');
+		const content = await fs.readFile(changelogLocation, 'utf-8');
 		return extractVersionChangelog(content, version, packageName);
 	}
 	catch {
@@ -96,5 +98,56 @@ export async function extractChangelogForVersion(
 	}
 }
 
+/**
+ * Gets the latest version from a changelog file by reading version markers
+ * @param packageName - Package name to filter markers by (optional, if not provided returns latest from any package)
+ * @param options - Changelog options
+ * @param changelogPath - Optional path to changelog file
+ * @returns The latest version string or undefined if no version found
+ */
+export async function getLatestVersionFromChangelog(
+	packageName?: string,
+	options?: ChangelogOptions,
+	changelogPath?: string,
+): Promise<string | undefined> {
+	const changelogOpts: ChangelogOptions = typeof options === 'object' && options !== null ? options : {};
+	const defaultLocation = typeof changelogOpts.location === 'string' ? changelogOpts.location : 'CHANGELOG.md';
+	const changelogLocation = resolveChangelogPath(changelogPath, defaultLocation);
+
+	try {
+		const content = await fs.readFile(changelogLocation, 'utf-8');
+		const markers = findVersionMarkers(content);
+
+		if (markers.length === 0) {
+			logger.debug('No version markers found in changelog');
+			return undefined;
+		}
+
+		// Filter by package name if provided
+		const filteredMarkers = typeof packageName === 'string'
+			? markers.filter((m) => m.packageName === packageName)
+			: markers;
+
+		if (filteredMarkers.length === 0) {
+			logger.debug('No version markers found for package', { packageName });
+			return undefined;
+		}
+
+		const versions = filteredMarkers.map((m) => m.version);
+		const sortedVersions = sortVersionsDescending(versions);
+		const latestVersion = sortedVersions.shift();
+		logger.debug('Latest version from changelog', { packageName, version: latestVersion });
+		return latestVersion ?? undefined;
+	}
+	catch (error: unknown) {
+		logger.debug('Failed to read changelog', {
+			changelogLocation,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return undefined;
+	}
+}
+
 export type { ChangelogOptions, ConventionalCommitType } from './options.ts';
 export { defaultChangelogOptions } from './options.ts';
+export { resolveVersionWithFallback } from './version-utils.ts';

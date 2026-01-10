@@ -55,6 +55,24 @@ describe('formatCommitMessage', () => {
 		expect(result).toBe('resolve bug');
 	});
 
+	it('should apply both capitalization and scope mapping when both are enabled', () => {
+		const commit: ParsedCommit = {
+			hash: 'abc123',
+			message: 'api: resolve bug',
+			author: 'test',
+			date: '2024-01-01',
+			type: 'fix',
+			scope: 'api',
+		};
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			capitalize: true,
+			scopeMap: { api: 'API' },
+		};
+		const result = formatCommitMessage(commit, options);
+		expect(result).toBe('API: resolve bug');
+	});
+
 	it('should use message when subject is not available', () => {
 		const commit: ParsedCommit = {
 			hash: 'abc123',

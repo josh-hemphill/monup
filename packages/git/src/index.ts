@@ -10,6 +10,7 @@ import packageJson from '../jsr.json' with { type: 'json' };
 import { logger } from './logger.ts';
 import { parseGitLog } from './parser.ts';
 import { streamGitCommits } from './streamer.ts';
+import { escapeRegex } from './tag-utils.ts';
 
 export type { PackageInfo } from './filter.ts';
 export { filterCommitsByPackage } from './filter.ts';
@@ -18,6 +19,13 @@ export { createCommit, createTag, formatTag, pushToRemote } from './operations.t
 export type { GitOptions, ResolvedGitOptions } from './options.ts';
 export { defaultGitOptions } from './options.ts';
 export { parseConventionalCommit, type ParsedCommit, parseGitLog } from './parser.ts';
+export {
+	escapeRegex,
+	extractVersionFromScopedTag,
+	extractVersionFromTag,
+	extractVersionFromTagByStrategy,
+	extractVersionFromTagWithTemplate,
+} from './tag-utils.ts';
 
 export const _VERSION: string = packageJson.version;
 /**
@@ -109,22 +117,6 @@ export async function getCommits(
 }
 
 /**
- * Gets all git tags
- * @param root - Root directory for git operations (default: current working directory)
- */
-export async function getTags(root: string = cwd()): Promise<string[]> {
-	logger.debug('Getting git tags', { root });
-	const result = await $({ cwd: root })`git tag -l`.quiet();
-	const tags = result.stdout
-		.trim()
-		.split('\n')
-		.filter((tag) => tag.length > 0);
-	logger.debug('Found tags', { count: tags.length });
-	logger.trace('Tags', { tags });
-	return tags;
-}
-
-/**
  * Gets the current git branch
  * @param root - Root directory for git operations (default: current working directory)
  */
@@ -133,63 +125,145 @@ export async function getCurrentBranch(root: string = cwd()): Promise<string> {
 	return result.stdout.trim();
 }
 
+const scopedTagPattern = regex('^(?<package>[^@]+)@(?<version>.+)$', 'i');
 /**
- * Gets the last tag matching a filter
- * @param filter - Optional filter function for tags
- * @param tagTemplate - Optional template for tag format (e.g., 'v%s')
+ * Gets the last tags for multiple packages when using scoped tags (package`@`version format)
+ * Uses git's pattern matching with multiple patterns to efficiently retrieve all tags in one call
+ * @param packageNames - Array of package names to filter tags by
+ * @param root - Root directory for git operations (default: current working directory)
+ * @returns Map of package name to last tag (undefined if no tag found for that package)
+ */
+export async function getLastPackageTags(
+	packageNames: string[] = [],
+	root: string = cwd(),
+): Promise<Map<string, string | undefined>> {
+	logger.debug('Getting last package tags', { packageCount: packageNames.length, root });
+
+	if (packageNames.length === 0) {
+		return new Map();
+	}
+
+	// Escape special glob characters in package names and create patterns
+	const patterns = packageNames.map((packageName) => {
+		const escapedPackageName = packageName.replace(/[*?[\]\\]/g, '\\$&');
+		return `${escapedPackageName}@*`;
+	});
+
+	// Use git's pattern matching with multiple patterns and sorting
+	const args = ['tag', '-l', ...patterns, '--sort=-version:refname'];
+	const result = await $({ cwd: root })`git ${args}`.quiet().lines();
+	const allTags = result.filter((tag) => tag.length > 0);
+
+	logger.debug('Filtered package tags', { count: allTags.length, packageCount: packageNames.length });
+
+	// Group tags by package name and find the latest for each
+	const packageTagMap = new Map<string, string | undefined>();
+
+	// Initialize all packages to undefined
+	for (const packageName of packageNames) {
+		packageTagMap.set(packageName, undefined);
+	}
+
+	// Process tags and find the latest for each package
+	// Tags are already sorted by git, so first occurrence for each package is the latest
+	for (const tag of allTags) {
+		// Extract package name from tag (format: package@version)
+		const match = scopedTagPattern.exec(tag);
+		if (match !== null && match.groups !== undefined && typeof match.groups === 'object' && match.groups !== null) {
+			const groups = match.groups;
+			const tagPackageName = groups.package;
+			if (typeof tagPackageName === 'string') {
+				// Only update if we haven't found a tag for this package yet (since tags are sorted, first is latest)
+				if (packageTagMap.has(tagPackageName) && packageTagMap.get(tagPackageName) === undefined) {
+					packageTagMap.set(tagPackageName, tag);
+				}
+			}
+		}
+	}
+
+	logger.debug('Last package tags determined', {
+		found: Array.from(packageTagMap.entries()).filter(([, tag]) => typeof tag === 'string').length,
+		total: packageNames.length,
+	});
+
+	return packageTagMap;
+}
+
+/**
+ * Gets the last tag for a specific package when using scoped tags (package`@`version format)
+ * Uses git's pattern matching to filter tags efficiently
+ * @param packageName - Package name to filter tags by
+ * @param root - Root directory for git operations (default: current working directory)
+ */
+export async function getLastPackageTag(
+	packageName: string,
+	root: string = cwd(),
+): Promise<string | undefined> {
+	const result = await getLastPackageTags([packageName], root);
+	return result.get(packageName);
+}
+
+/**
+ * Gets the last global tag (not scoped to a package)
+ * @param filter - Optional glob pattern to filter tags via git CLI (e.g., 'v*')
+ * @param template - Optional tag template for matching (e.g., 'v%s')
+ * @param filterFunction - Optional function to filter tags after retrieving from CLI
  * @param root - Root directory for git operations (default: current working directory)
  */
 export async function getLastTag(
-	filter?: (tag: string) => boolean,
-	tagTemplate?: string,
+	filter?: string,
+	template?: string,
+	filterFunction?: (tag: string) => boolean,
 	root: string = cwd(),
 ): Promise<string | undefined> {
-	logger.debug('Getting last tag', { hasFilter: typeof filter === 'function', tagTemplate, root });
-	const tags = await getTags(root);
+	logger.debug('Getting last global tag', { filter, template, root, hasFilterFunction: typeof filterFunction === 'function' });
 
-	// Filter tags if filter function provided
-	const filteredTags = filter ? tags.filter(filter) : tags;
-	logger.debug('Filtered tags', { count: filteredTags.length, originalCount: tags.length });
+	const args = ['tag', '-l'];
 
-	if (filteredTags.length === 0) {
-		logger.debug('No tags found after filtering');
+	// Add filter pattern if provided (only for CLI glob patterns, not filter functions)
+	if (typeof filter === 'string') {
+		args.push(filter);
+	}
+
+	// Sort by version
+	args.push('--sort=-version:refname');
+
+	const result = await $({ cwd: root })`git ${args}`.quiet().lines();
+	let tags = result.filter((tag) => tag.length > 0);
+
+	logger.debug('Found tags', { count: tags.length });
+
+	// Apply filter function if provided (after CLI call)
+	if (typeof filterFunction === 'function' && tags.length > 0) {
+		tags = tags.filter(filterFunction);
+		logger.debug('Filtered tags with filter function', { count: tags.length });
+	}
+
+	// If template is provided, filter tags that match the template pattern
+	if (typeof template === 'string' && tags.length > 0) {
+		// Escape special regex characters in the template, then replace %s with pattern
+		const escapedTemplate = escapeRegex(template);
+		const versionPattern = escapedTemplate.replace(/%s/g, '.+');
+		const templateRegex = new RegExp(`^${versionPattern}$`);
+		const matchingTags = tags.filter((tag) => templateRegex.test(tag));
+
+		if (matchingTags.length > 0) {
+			logger.debug('Last tag determined', { tag: matchingTags[0] });
+			return matchingTags[0];
+		}
+
+		logger.debug('No tags matching template found', { template });
 		return undefined;
 	}
 
-	// Sort tags (assuming semantic versioning)
-	logger.trace('Sorting tags');
-	const sorted = filteredTags.sort((a, b) => {
-		// Extract version from tag template if provided
-		const extractVersion = (tag: string): string => {
-			if (typeof tagTemplate === 'string') {
-				// Dynamically construct regex pattern - use RegExp for dynamic patterns
-				const versionPattern = '(?<version>.+)';
-				const patternString = tagTemplate.replace(/%s/g, versionPattern);
-				const dynamicPattern = regex(patternString as typeof versionPattern);
-				const match = dynamicPattern.exec(tag);
-				if (match !== null && typeof match === 'object' && match.groups !== undefined && typeof match.groups === 'object' && match.groups !== null) {
-					const groups = match.groups as Record<string, string | undefined>;
-					const version = groups.version;
-					if (typeof version === 'string') {
-						return version;
-					}
-				}
-				return tag;
-			}
-			const vPrefixRegex = regex('^v');
-			return tag.replace(vPrefixRegex, '');
-		};
+	// Return first tag (latest due to sort)
+	if (tags.length > 0) {
+		logger.debug('Last tag determined', { tag: tags[0] });
+		return tags[0];
+	}
 
-		const vA = extractVersion(a);
-		const vB = extractVersion(b);
-
-		// Simple string comparison for semantic versions
-		return vB.localeCompare(vA, undefined, { numeric: true, sensitivity: 'base' });
-	});
-
-	const lastTag = sorted[0];
-	logger.debug('Last tag determined', { tag: lastTag });
-	return lastTag;
+	logger.debug('No tags found');
+	return undefined;
 }
 
 /**

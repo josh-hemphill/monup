@@ -25,6 +25,6 @@ export function resolveAgent(nameAndVer: { name: AgentName; ver?: string } | und
 	return null;
 }
 
-export function handelVer(version: string | undefined): string | undefined {
+export function handleVer(version: string | undefined): string | undefined {
 	return version?.match(/\d+(\.\d+){0,2}/)?.[0] ?? version;
 }

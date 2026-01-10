@@ -2,8 +2,9 @@ import type { VersionUpdater } from './index.ts';
 /**
  * Deno.json version updater plugin
  */
-import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { parseJsonc, VERSION_FIELD_REGEX } from '@monup/utils';
+import { fs } from 'zx';
 
 interface DenoJson {
 	name?: string;
@@ -18,10 +19,8 @@ export class DenoJsonUpdater implements VersionUpdater {
 
 	async readVersion(filePath: string): Promise<string | undefined> {
 		try {
-			const content = await readFile(resolve(filePath), 'utf-8');
-			// Handle JSONC (JSON with comments)
-			const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-			const config = JSON.parse(jsonContent) as DenoJson;
+			const content = await fs.readFile(resolve(filePath), 'utf-8');
+			const config = parseJsonc<DenoJson>(content);
 			return typeof config.version === 'string' ? config.version : undefined;
 		}
 		catch {
@@ -30,12 +29,8 @@ export class DenoJsonUpdater implements VersionUpdater {
 	}
 
 	async updateVersion(filePath: string, newVersion: string): Promise<void> {
-		const content = await readFile(resolve(filePath), 'utf-8');
-		// Simple regex replacement for version field
-		const updated = content.replace(
-			/("version"\s*:\s*")[^"]+(")/,
-			`$1${newVersion}$2`,
-		);
-		await writeFile(resolve(filePath), updated, 'utf-8');
+		const content = await fs.readFile(resolve(filePath), 'utf-8');
+		const updated = content.replace(VERSION_FIELD_REGEX, `$1${newVersion}$2`);
+		await fs.writeFile(resolve(filePath), updated, 'utf-8');
 	}
 }
