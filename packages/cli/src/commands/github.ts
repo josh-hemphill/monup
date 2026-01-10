@@ -12,6 +12,8 @@ import { getPackagesWithCache } from '../package-utils.ts';
  * Handles the github command
  */
 export async function handleGithub(options: ResolvedMonupOptions): Promise<void> {
+	logger.debug('Handling github command');
+	logger.trace('GitHub options', options.github);
 	const packages = await getPackagesWithCache();
 	if (typeof packages === 'undefined') {
 		return;
@@ -42,6 +44,9 @@ export async function handleGithub(options: ResolvedMonupOptions): Promise<void>
 			changelog: options.changelog,
 		};
 
-		await createRelease(version, pkg.name, tagName, githubOptions, changelogPath);
+		logger.debug('Creating GitHub release', { version, pkg: pkg.name, tagName });
+		logger.trace('GitHub options', githubOptions);
+		logger.trace('Git options', options.git);
+		await createRelease(version, pkg.name, tagName, githubOptions, options.git, changelogPath);
 	}
 }

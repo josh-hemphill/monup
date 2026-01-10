@@ -14,6 +14,7 @@ export async function handleRelease(
 	options: ResolvedMonupOptions,
 	dryRunOnly = false,
 ): Promise<void> {
+	logger.debug('Handling release command', { dryRunOnly });
 	// Use cached packages if available
 	let packages = getCachedPackages();
 	if (typeof packages === 'undefined') {
@@ -37,6 +38,8 @@ export async function handleRelease(
 			releaseOptions.dryRun = true;
 		}
 
+		logger.debug('Publishing package', { pkg: pkg.name });
+		logger.trace('Release options', releaseOptions);
 		await publish(pkg, releaseOptions);
 	}
 }
