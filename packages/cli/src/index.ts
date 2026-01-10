@@ -14,12 +14,12 @@ import { _VERSION as workspaceVersion } from '@monup/workspace';
 import { cac } from 'cac';
 import loglevel from 'loglevel';
 import packageJson from '../jsr.json' with { type: 'json' };
+import { clearCache, initCache } from './cache.ts';
 import { handleAll } from './commands/all.ts';
 import { handleChangelog } from './commands/changelog.ts';
 import { handleGithub } from './commands/github.ts';
 import { handleRelease } from './commands/release.ts';
 import { handleVersion } from './commands/version.ts';
-import { initCache, clearCache } from './cache.ts';
 
 const versions = [
 	`@monup/cli:${packageJson.version}`,
@@ -159,8 +159,14 @@ export function main(): void {
 			await handleAll(resolvedOptions);
 		});
 
-	cli.help();
-	cli.version(`\n${versions.join('\n')}\n`);
+	const versionText = `\n${versions.join('\n')}\n`;
+	cli.version(versionText);
+	cli.help((helpSections) => {
+		const versionSection = helpSections.find((section) => section.body.includes(versionText));
+		if (versionSection) {
+			versionSection.body = `Version: ${versions[0]}`;
+		}
+	});
 
 	cli.parse();
 
