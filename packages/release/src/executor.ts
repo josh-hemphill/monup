@@ -57,8 +57,9 @@ export async function executePublish(
 	dryRun: boolean,
 	extraArgs: string[] = [],
 ): Promise<void> {
+	logger.trace('Contextualizing publish command', { config });
 	const command = contextualizePublishCommand(config.command, config.publishType);
-
+	logger.trace('Contextualized publish command', { command });
 	command.args.push(...extraArgs);
 
 	if (dryRun) {
