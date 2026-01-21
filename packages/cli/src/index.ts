@@ -2,7 +2,7 @@ import type { LogLevel, ResolvedMonupOptions } from '@monup/options';
 /**
  * CLI entry point for monup
  */
-import { exit } from 'node:process';
+import { argv, exit } from 'node:process';
 import { _VERSION as changelogVersion } from '@monup/changelog';
 import { _VERSION as gitVersion } from '@monup/git';
 import { _VERSION as githubVersion } from '@monup/github';
@@ -63,9 +63,11 @@ function configureLogLevels(options: ResolvedMonupOptions): void {
 	}
 }
 
-export function main(): void {
+export async function main(): Promise<void> {
 	// Initialize cache at CLI start
 	initCache();
+
+	let resolvedOptions: ResolvedMonupOptions;
 
 	const cli = cac('monup');
 
@@ -79,17 +81,6 @@ export function main(): void {
 		.option('--minor', 'Force minor version bump')
 		.option('--patch', 'Force patch version bump')
 		.action(async (options: Record<string, unknown>) => {
-			const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
-			const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
-			const resolvedOptions = await resolveOptions({
-				ci: { autoDetect },
-				logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
-			})
-				.catch((error) => {
-					console.error(error);
-					exit(1);
-				});
-			configureLogLevels(resolvedOptions);
 			const bumpType = typeof options.major === 'boolean' && options.major
 				? 'major'
 				: typeof options.minor === 'boolean' && options.minor
@@ -102,14 +93,7 @@ export function main(): void {
 
 	cli
 		.command('changelog', 'Generate changelog from commits')
-		.action(async (options: Record<string, unknown>) => {
-			const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
-			const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
-			const resolvedOptions = await resolveOptions({
-				ci: { autoDetect },
-				logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
-			});
-			configureLogLevels(resolvedOptions);
+		.action(async () => {
 			await handleChangelog(resolvedOptions);
 		});
 
@@ -117,45 +101,21 @@ export function main(): void {
 		.command('release', 'Publish packages to npm/JSR')
 		.option('--dry-run', 'Only validate, do not publish')
 		.action(async (options: Record<string, unknown>) => {
-			const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
-			const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
-			const baseOptions = await resolveOptions({
-				ci: { autoDetect },
-				logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
-			});
-			const dryRun = typeof options.dryRun === 'boolean' ? options.dryRun : baseOptions.release.dryRun;
-			const resolvedOptions = await resolveOptions({
-				ci: { autoDetect },
-				release: { dryRun },
-				logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
-			});
-			configureLogLevels(resolvedOptions);
-			await handleRelease(resolvedOptions, typeof options.dryRun === 'boolean' ? options.dryRun : undefined);
+			if (typeof options.dryRun === 'boolean' && options.dryRun) {
+				resolvedOptions.release.dryRun = true;
+			}
+			await handleRelease(resolvedOptions);
 		});
 
 	cli
 		.command('github', 'Create GitHub releases')
-		.action(async (options: Record<string, unknown>) => {
-			const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
-			const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
-			const resolvedOptions = await resolveOptions({
-				ci: { autoDetect },
-				logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
-			});
-			configureLogLevels(resolvedOptions);
+		.action(async () => {
 			await handleGithub(resolvedOptions);
 		});
 
 	cli
 		.command('all', 'Run complete workflow: version → changelog → release → github')
-		.action(async (options: Record<string, unknown>) => {
-			const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
-			const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
-			const resolvedOptions = await resolveOptions({
-				ci: { autoDetect },
-				logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
-			});
-			configureLogLevels(resolvedOptions);
+		.action(async () => {
 			await handleAll(resolvedOptions);
 		});
 
@@ -168,7 +128,29 @@ export function main(): void {
 		}
 	});
 
-	cli.parse();
+	try {
+		// Parse CLI args without running the command
+		const { options } = cli.parse(argv, { run: false });
+		const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
+		const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
+		resolvedOptions = await resolveOptions({
+			ci: { autoDetect },
+			logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
+		});
+		configureLogLevels(resolvedOptions);
+
+		// Run the command yourself
+		// You only need `await` when your command action returns a Promise
+		await cli.runMatchedCommand();
+	}
+	catch (error) {
+		// Handle error here..
+		console.error((error as Error).stack);
+		// Clear cache at CLI end (though this may not execute if process exits)
+		// Cache will be cleared on next CLI invocation via initCache
+		clearCache();
+		exit(1);
+	}
 
 	// Clear cache at CLI end (though this may not execute if process exits)
 	// Cache will be cleared on next CLI invocation via initCache

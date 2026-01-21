@@ -103,5 +103,16 @@
 		"./.vscode/cSpell.json"
 	],
 	"vitest.disableWorkspaceWarning": true,
-	"vitest.workspaceConfig": "vitest.config.ts"
+	"vitest.workspaceConfig": "vitest.config.ts",
+	"conventionalCommits.scopes": [
+		"changelog",
+		"cli",
+		"git",
+		"github",
+		"options",
+		"release",
+		"utils",
+		"version",
+		"workspace"
+	]
 }
