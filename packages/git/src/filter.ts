@@ -17,42 +17,42 @@ export interface PackageInfo {
 export function filterCommitsByPackage(
 	commits: ParsedCommit[],
 	packages: PackageInfo[],
-): Map<string, ParsedCommit[]> {
+): { scopedCommits: Map<string, ParsedCommit[]>; unscopedCommits: Set<ParsedCommit> } {
 	logger.debug('Filtering commits by package', { commitCount: commits.length, packageCount: packages.length });
-	const packageCommits = new Map<string, ParsedCommit[]>();
+	const scopedCommits = new Map<string, ParsedCommit[]>();
 
 	// Initialize map with empty arrays for each package
 	for (const pkg of packages) {
-		packageCommits.set(pkg.name, []);
+		scopedCommits.set(pkg.name, []);
 	}
-	logger.trace('Initialized package commit map', { packages: packages.map((p) => p.name) });
+	logger.debug('Initialized package commit map', { packages: packages.map((p) => p.name) });
 
 	// Filter commits based on packages touched
-	let skippedCount = 0;
+	const unscopedCommits = new Set<ParsedCommit>();
 	for (const commit of commits) {
 		if (typeof commit.packages === 'undefined' || commit.packages.length === 0) {
 			// If no package info, skip
-			skippedCount++;
-			logger.trace('Skipping commit without package info', { hash: commit.hash?.slice(0, 7) });
+			unscopedCommits.add(commit);
+			logger.debug('Skipping commit without package info', { hash: commit.hash?.slice(0, 7) });
 			continue;
 		}
 
 		// Add commit to all touched packages
 		for (const pkgName of commit.packages) {
-			const existing = packageCommits.get(pkgName);
+			const existing = scopedCommits.get(pkgName);
 			const commits = Array.isArray(existing) ? existing : [];
 			commits.push(commit);
-			packageCommits.set(pkgName, commits);
-			logger.trace('Added commit to package', { package: pkgName, hash: commit.hash?.slice(0, 7) });
+			scopedCommits.set(pkgName, commits);
+			logger.debug('Added commit to package', { package: pkgName, hash: commit.hash?.slice(0, 7) });
 		}
 	}
 
-	logger.debug('Finished filtering commits', { skipped: skippedCount });
-	for (const [pkgName, pkgCommits] of packageCommits) {
-		logger.trace('Package commit count', { package: pkgName, count: pkgCommits.length });
-	}
+	logger.debug('Finished filtering commits', { unscopedCommits: unscopedCommits.size });
 
-	return packageCommits;
+	return {
+		scopedCommits,
+		unscopedCommits,
+	};
 }
 
 /**

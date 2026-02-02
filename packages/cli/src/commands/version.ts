@@ -108,10 +108,14 @@ export async function handleVersion(
 					commitsList = await getCommits(lastPackageTag);
 				}
 				else {
-					// No previous tag for this package, use all commits
-					const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
-					const packageCommits = packageCommitsMap.get(pkg.name);
-					commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+					// No previous tag for this package, filter commits by package
+					const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, [pkg]);
+					// Determine if this is a root package (gets unscoped commits too)
+					const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+					const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+					commitsList = isRootPackage
+						? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+						: scopedPackageCommits;
 				}
 			}
 			catch (error: unknown) {
@@ -120,16 +124,18 @@ export async function handleVersion(
 					error: error instanceof Error ? error.message : String(error),
 				});
 				// Fallback to filtered commits
-				const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
-				const packageCommits = packageCommitsMap.get(pkg.name);
-				commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+				const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, [pkg]);
+				// Determine if this is a root package (gets unscoped commits too)
+				const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+				const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+				commitsList = isRootPackage
+					? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+					: scopedPackageCommits;
 			}
 		}
 		else {
-			// Global tag strategy - filter commits for this package
-			const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
-			const packageCommits = packageCommitsMap.get(pkg.name);
-			commitsList = Array.isArray(packageCommits) ? packageCommits : [];
+			// Global tag strategy - all packages share the same commits (no filtering needed)
+			commitsList = commits;
 		}
 		logger.debug('Package commits filtered', { package: pkg.name, count: commitsList.length });
 

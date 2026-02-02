@@ -39,19 +39,21 @@ describe('filterCommitsByPackage', () => {
 			{ name: 'package2', path: '/packages/pkg2', root: '/' },
 		];
 
-		const result = filterCommitsByPackage(commits, packages);
+		const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
 
-		expect(result.size).toBe(2);
-		expect(result.get('package1')?.length).toBe(2);
-		expect(result.get('package2')?.length).toBe(2);
+		expect(scopedCommits.size).toBe(2);
+		expect(scopedCommits.get('package1')?.length).toBe(2);
+		expect(scopedCommits.get('package2')?.length).toBe(2);
 
-		const pkg1Commits = result.get('package1');
+		const pkg1Commits = scopedCommits.get('package1');
 		expect(pkg1Commits?.some((c) => c.hash === 'abc123')).toBe(true);
 		expect(pkg1Commits?.some((c) => c.hash === 'ghi789')).toBe(true);
 
-		const pkg2Commits = result.get('package2');
+		const pkg2Commits = scopedCommits.get('package2');
 		expect(pkg2Commits?.some((c) => c.hash === 'def456')).toBe(true);
 		expect(pkg2Commits?.some((c) => c.hash === 'ghi789')).toBe(true);
+
+		expect(unscopedCommits.size).toBe(0);
 	});
 
 	it('should skip commits without package info', () => {
@@ -80,10 +82,13 @@ describe('filterCommitsByPackage', () => {
 			{ name: 'package1', path: '/packages/pkg1', root: '/' },
 		];
 
-		const result = filterCommitsByPackage(commits, packages);
+		const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
 
-		expect(result.get('package1')?.length).toBe(1);
-		expect(result.get('package1')?.[0]?.hash).toBe('abc123');
+		expect(scopedCommits.size).toBe(1);
+		expect(scopedCommits.get('package1')?.length).toBe(1);
+		expect(scopedCommits.get('package1')?.[0]?.hash).toBe('abc123');
+
+		expect(unscopedCommits.size).toBe(0);
 	});
 
 	it('should initialize empty arrays for all packages', () => {
@@ -94,11 +99,13 @@ describe('filterCommitsByPackage', () => {
 			{ name: 'package2', path: '/packages/pkg2', root: '/' },
 		];
 
-		const result = filterCommitsByPackage(commits, packages);
+		const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
 
-		expect(result.size).toBe(2);
-		expect(result.get('package1')?.length).toBe(0);
-		expect(result.get('package2')?.length).toBe(0);
+		expect(scopedCommits.size).toBe(2);
+		expect(scopedCommits.get('package1')?.length).toBe(0);
+		expect(scopedCommits.get('package2')?.length).toBe(0);
+
+		expect(unscopedCommits.size).toBe(0);
 	});
 
 	it('should handle commits that touch multiple packages', () => {
@@ -120,13 +127,15 @@ describe('filterCommitsByPackage', () => {
 			{ name: 'package3', path: '/packages/pkg3', root: '/' },
 		];
 
-		const result = filterCommitsByPackage(commits, packages);
+		const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
 
-		expect(result.get('package1')?.length).toBe(1);
-		expect(result.get('package2')?.length).toBe(1);
-		expect(result.get('package3')?.length).toBe(1);
-		expect(result.get('package1')?.[0]?.hash).toBe('abc123');
-		expect(result.get('package2')?.[0]?.hash).toBe('abc123');
-		expect(result.get('package3')?.[0]?.hash).toBe('abc123');
+		expect(scopedCommits.get('package1')?.length).toBe(1);
+		expect(scopedCommits.get('package2')?.length).toBe(1);
+		expect(scopedCommits.get('package3')?.length).toBe(1);
+		expect(scopedCommits.get('package1')?.[0]?.hash).toBe('abc123');
+		expect(scopedCommits.get('package2')?.[0]?.hash).toBe('abc123');
+		expect(scopedCommits.get('package3')?.[0]?.hash).toBe('abc123');
+
+		expect(unscopedCommits.size).toBe(0);
 	});
 });

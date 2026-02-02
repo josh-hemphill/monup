@@ -113,10 +113,18 @@ export async function handleChangelog(options: ResolvedMonupOptions): Promise<vo
 	}
 	else {
 		// Generate per-package changelogs
+		// Filter all commits by package once
+		const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
+
 		for (const pkg of packages) {
-			// Filter commits for this package
-			const packageCommitsMap = filterCommitsByPackage(commits, [pkg]);
-			const packageCommits = packageCommitsMap.get(pkg.name) || [];
+			// Determine if this is a root package (gets unscoped commits too)
+			const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+			// Get scoped commits for this package
+			const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+			// Root package gets unscoped commits, other packages only get scoped commits
+			const packageCommits = isRootPackage
+				? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+				: scopedPackageCommits;
 
 			if (packageCommits.length === 0) {
 				logger.info(`No commits for ${pkg.name}, skipping changelog`);

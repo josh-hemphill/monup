@@ -17,6 +17,21 @@
 			]
 		},
 		{
+			"type": "node",
+			"request": "launch",
+			"name": "Debug cli command",
+			"args": [
+				"version"
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"program": "${workspaceFolder}\\packages\\cli\\bin\\monup.mjs",
+			"outFiles": [
+				"${workspaceFolder}/**/*.js"
+			]
+		},
+		{
 			"name": "Debug Vitest",
 			"type": "node",
 			"request": "launch",

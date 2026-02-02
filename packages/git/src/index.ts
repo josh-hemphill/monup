@@ -64,8 +64,6 @@ export async function getCommits(
 		args.push('--name-only');
 	}
 
-	logger.trace('Git root directory', { root });
-
 	// If we need package info, stream and process in chunks
 	if (includePackages.length > 0) {
 		const packages = includePackages;
@@ -109,7 +107,7 @@ export async function getCommits(
 	}
 
 	// Fallback to non-streaming parsing if packages not needed
-	logger.debug('Using non-streaming git log parsing');
+	logger.debug('Using non-streaming git log parsing', { args: args.join(' ') });
 	const result = await $({ cwd: root })`git ${args}`.quiet();
 	const commits = parseGitLog(result.stdout);
 	logger.debug('Parsed commits', { count: commits.length });
@@ -151,6 +149,7 @@ export async function getLastPackageTags(
 
 	// Use git's pattern matching with multiple patterns and sorting
 	const args = ['tag', '-l', ...patterns, '--sort=-version:refname'];
+	logger.debug('Git tags command', `git ${args.join(' ')}`);
 	const result = await $({ cwd: root })`git ${args}`.quiet().lines();
 	const allTags = result.filter((tag) => tag.length > 0);
 
