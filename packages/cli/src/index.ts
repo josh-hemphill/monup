@@ -8,7 +8,7 @@ import { _VERSION as gitVersion } from '@monup/git';
 import { _VERSION as githubVersion } from '@monup/github';
 import { _VERSION as optionsVersion, resolveOptions } from '@monup/options';
 import { _VERSION as releaseVersion } from '@monup/release';
-import { applyLogFormatter, _VERSION as utilsVersion } from '@monup/utils';
+import { applyLogFormatter, parseConfigOverrides, _VERSION as utilsVersion } from '@monup/utils';
 import { _VERSION as versionVersion } from '@monup/version';
 import { _VERSION as workspaceVersion } from '@monup/workspace';
 import { cac } from 'cac';
@@ -43,23 +43,16 @@ function configureLogLevels(options: ResolvedMonupOptions): void {
 		return;
 	}
 
-	// Apply formatter to default logger
-	applyLogFormatter(loglevel);
-
 	const defaultLevel = logLevelConfig.default;
 	if (typeof defaultLevel === 'string') {
-		loglevel.setLevel(defaultLevel);
+		loglevel.setDefaultLevel(defaultLevel);
 	}
-
+	const loggers = loglevel.getLoggers();
 	const packageLevels = logLevelConfig.packages;
-	if (typeof packageLevels === 'object' && packageLevels !== null) {
-		for (const [packageName, level] of Object.entries(packageLevels)) {
-			if (typeof level === 'string') {
-				const logger = loglevel.getLogger(packageName);
-				applyLogFormatter(logger);
-				logger.setLevel(level);
-			}
-		}
+	for (const [name, logger] of Object.entries(loggers)) {
+		applyLogFormatter(logger);
+		const packageLevel = packageLevels?.[name] ?? defaultLevel;
+		logger.setLevel(packageLevel);
 	}
 }
 
@@ -73,7 +66,8 @@ export async function main(): Promise<void> {
 
 	cli
 		.option('--log-level <level>', 'Set default log level (trace|debug|info|warn|error|silent)')
-		.option('--ci', 'Run in CI mode (non-interactive)');
+		.option('--ci', 'Run in CI mode (non-interactive)')
+		.option('-s, --set <path=value>', 'Override config option (e.g. git.push=false)');
 
 	cli
 		.command('version', 'Update package versions based on commits')
@@ -133,9 +127,20 @@ export async function main(): Promise<void> {
 		const { options } = cli.parse(argv, { run: false });
 		const autoDetect = typeof options.ci === 'boolean' ? !options.ci : true;
 		const logLevel = typeof options.logLevel === 'string' && options.logLevel.length > 0 ? options.logLevel : undefined;
+
+		// Parse --set overrides (can be string or array of strings)
+		let configOverrides: Record<string, unknown> = {};
+		if (typeof options.set !== 'undefined') {
+			const setEntries = Array.isArray(options.set)
+				? options.set as string[]
+				: [options.set as string];
+			configOverrides = parseConfigOverrides(setEntries);
+		}
+
 		resolvedOptions = await resolveOptions({
 			ci: { autoDetect },
 			logLevel: typeof logLevel === 'string' ? { default: logLevel as LogLevel } : undefined,
+			...configOverrides,
 		});
 		configureLogLevels(resolvedOptions);
 

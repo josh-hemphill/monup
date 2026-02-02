@@ -3,6 +3,82 @@
  */
 
 /**
+ * Coerces a string value to its appropriate type
+ * - "true" / "false" → boolean
+ * - Numeric strings → number
+ * - Otherwise keeps as string
+ */
+export function coerceValue(value: string): unknown {
+	// Boolean coercion
+	if (value === 'true') {
+		return true;
+	}
+	if (value === 'false') {
+		return false;
+	}
+
+	// Number coercion (only for valid numeric strings)
+	if (value !== '' && !Number.isNaN(Number(value))) {
+		return Number(value);
+	}
+
+	// Keep as string
+	return value;
+}
+
+/**
+ * Sets a value in a nested object using a dot-path key
+ * Creates intermediate objects as needed
+ * @example setByPath({}, 'git.push', false) → { git: { push: false } }
+ */
+export function setByPath(obj: Record<string, unknown>, path: string, value: unknown): void {
+	const keys = path.split('.');
+	let current: Record<string, unknown> = obj;
+
+	for (let i = 0; i < keys.length - 1; i++) {
+		const key = keys[i];
+		if (typeof current[key] !== 'object' || current[key] === null) {
+			current[key] = {};
+		}
+		current = current[key] as Record<string, unknown>;
+	}
+
+	const lastKey = keys[keys.length - 1];
+	current[lastKey] = value;
+}
+
+/**
+ * Parses an array of "path=value" strings into a nested config object
+ * @example parseConfigOverrides(['git.push=false', 'release.dryRun=true'])
+ *          → { git: { push: false }, release: { dryRun: true } }
+ */
+export function parseConfigOverrides(entries: string[]): Record<string, unknown> {
+	const result: Record<string, unknown> = {};
+
+	for (const entry of entries) {
+		// Split on first '=' only
+		const eqIndex = entry.indexOf('=');
+		if (eqIndex === -1) {
+			// No '=' found, skip this entry
+			continue;
+		}
+
+		const path = entry.slice(0, eqIndex);
+		const rawValue = entry.slice(eqIndex + 1);
+
+		if (path.length === 0) {
+			// Empty path, skip
+			continue;
+		}
+
+		const value = coerceValue(rawValue);
+		setByPath(result, path, value);
+	}
+
+	return result;
+}
+
+/**
  * Deep merges multiple objects, with later objects taking precedence
  */
 export function deepMerge<T extends Record<string, unknown>>(

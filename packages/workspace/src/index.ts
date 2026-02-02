@@ -2,10 +2,9 @@ import type { PackageInfo } from './plugins/index.ts';
 /**
  * Workspace package detection and management
  */
-import { resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { fs } from 'zx';
 import { updateVersionInFile } from '@monup/version';
+import { fs } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { logger } from './logger.ts';
 import { DenoWorkspaceDetector, getDenoJson } from './plugins/deno.ts';
@@ -28,7 +27,7 @@ export { logger } from './logger.ts';
 /**
  * Detects packages in a workspace
  */
-export async function detectPackages(root = cwd()): Promise<PackageInfo[]> {
+export async function detectPackages(root: string = cwd()): Promise<PackageInfo[]> {
 	logger.debug('Detecting packages', { root });
 	const handlers = await getHandlers(root);
 	if (handlers.length === 0) {
@@ -83,7 +82,7 @@ async function detectRootAsPackage(root: string): Promise<PackageInfo[]> {
  */
 export async function getPackageInfo(
 	packageName: string,
-	root = cwd(),
+	root: string = cwd(),
 ): Promise<PackageInfo | undefined> {
 	const packages = await detectPackages(root);
 	return packages.find((pkg) => pkg.name === packageName);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deepMerge, mergeWithDefaults } from '../src/merge.ts';
+import { coerceValue, deepMerge, mergeWithDefaults, parseConfigOverrides, setByPath } from '../src/merge.ts';
 
 describe('deepMerge', () => {
 	it('should merge simple objects', () => {
@@ -100,5 +100,111 @@ describe('mergeWithDefaults', () => {
 		const provided = { a: { b: { c: 3 } } };
 		const result = mergeWithDefaults(defaults, provided);
 		expect(result).toEqual({ a: { b: { c: 3, d: 2 } } });
+	});
+});
+
+describe('coerceValue', () => {
+	it('should coerce "true" to boolean true', () => {
+		expect(coerceValue('true')).toBe(true);
+	});
+
+	it('should coerce "false" to boolean false', () => {
+		expect(coerceValue('false')).toBe(false);
+	});
+
+	it('should coerce numeric strings to numbers', () => {
+		expect(coerceValue('123')).toBe(123);
+		expect(coerceValue('0')).toBe(0);
+		expect(coerceValue('-42')).toBe(-42);
+		expect(coerceValue('3.14')).toBe(3.14);
+	});
+
+	it('should keep non-numeric, non-boolean strings as strings', () => {
+		expect(coerceValue('hello')).toBe('hello');
+		expect(coerceValue('git.push')).toBe('git.push');
+		expect(coerceValue('')).toBe('');
+	});
+});
+
+describe('setByPath', () => {
+	it('should set a simple path', () => {
+		const obj: Record<string, unknown> = {};
+		setByPath(obj, 'key', 'value');
+		expect(obj).toEqual({ key: 'value' });
+	});
+
+	it('should set a nested path', () => {
+		const obj: Record<string, unknown> = {};
+		setByPath(obj, 'git.push', false);
+		expect(obj).toEqual({ git: { push: false } });
+	});
+
+	it('should set a deeply nested path', () => {
+		const obj: Record<string, unknown> = {};
+		setByPath(obj, 'a.b.c.d', 42);
+		expect(obj).toEqual({ a: { b: { c: { d: 42 } } } });
+	});
+
+	it('should overwrite existing values', () => {
+		const obj: Record<string, unknown> = { git: { push: true, tag: true } };
+		setByPath(obj, 'git.push', false);
+		expect(obj).toEqual({ git: { push: false, tag: true } });
+	});
+
+	it('should create intermediate objects', () => {
+		const obj: Record<string, unknown> = { existing: 'value' };
+		setByPath(obj, 'new.nested.key', 'newValue');
+		expect(obj).toEqual({ existing: 'value', new: { nested: { key: 'newValue' } } });
+	});
+});
+
+describe('parseConfigOverrides', () => {
+	it('should parse single path=value entry', () => {
+		const result = parseConfigOverrides(['git.push=false']);
+		expect(result).toEqual({ git: { push: false } });
+	});
+
+	it('should parse multiple entries', () => {
+		const result = parseConfigOverrides(['git.push=false', 'release.dryRun=true']);
+		expect(result).toEqual({ git: { push: false }, release: { dryRun: true } });
+	});
+
+	it('should handle entries with = in value', () => {
+		const result = parseConfigOverrides(['key=value=with=equals']);
+		expect(result).toEqual({ key: 'value=with=equals' });
+	});
+
+	it('should skip entries without =', () => {
+		const result = parseConfigOverrides(['noequals', 'git.push=false']);
+		expect(result).toEqual({ git: { push: false } });
+	});
+
+	it('should skip entries with empty path', () => {
+		const result = parseConfigOverrides(['=value', 'git.push=false']);
+		expect(result).toEqual({ git: { push: false } });
+	});
+
+	it('should coerce values appropriately', () => {
+		const result = parseConfigOverrides([
+			'bool.true=true',
+			'bool.false=false',
+			'num.int=42',
+			'str.val=hello',
+		]);
+		expect(result).toEqual({
+			bool: { true: true, false: false },
+			num: { int: 42 },
+			str: { val: 'hello' },
+		});
+	});
+
+	it('should handle empty array', () => {
+		const result = parseConfigOverrides([]);
+		expect(result).toEqual({});
+	});
+
+	it('should allow later entries to overwrite earlier ones', () => {
+		const result = parseConfigOverrides(['git.push=true', 'git.push=false']);
+		expect(result).toEqual({ git: { push: false } });
 	});
 });

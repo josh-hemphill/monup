@@ -8,7 +8,7 @@ export { getErrorMessage } from './error-utils.ts';
 export { parseJson, parseJsonc, stripJsoncComments } from './jsonc.ts';
 export { applyLogFormatter } from './log-formatter.ts';
 export { createLogger, logger } from './logger.ts';
-export { deepMerge, mergeWithDefaults } from './merge.ts';
+export { coerceValue, deepMerge, mergeWithDefaults, parseConfigOverrides, setByPath } from './merge.ts';
 export { extractPackageName } from './package-utils.ts';
 export { sortVersionsDescending, VERSION_FIELD_REGEX } from './version-constants.ts';
 
