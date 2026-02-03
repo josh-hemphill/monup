@@ -36,7 +36,7 @@ export async function handleChangelog(options: ResolvedMonupOptions): Promise<vo
 				try {
 					const lastPackageTag = packageTagMap.get(pkg.name);
 					if (typeof lastPackageTag === 'string') {
-						const packageCommits = await getCommits(lastPackageTag);
+						const packageCommits = await getCommits(lastPackageTag, undefined, packages);
 						// Merge commits, avoiding duplicates
 						for (const commit of packageCommits) {
 							if (!allCommits.some((c) => c.hash === commit.hash)) {
@@ -55,7 +55,7 @@ export async function handleChangelog(options: ResolvedMonupOptions): Promise<vo
 			// If no package tags found, fall back to global tag
 			if (allCommits.length === 0) {
 				const lastTag = await getLastTag(undefined, options.git.tagTemplate, options.git.tagFilter);
-				commits = await getCommits(lastTag);
+				commits = await getCommits(lastTag, undefined, packages);
 			}
 			else {
 				commits = allCommits;
@@ -65,7 +65,7 @@ export async function handleChangelog(options: ResolvedMonupOptions): Promise<vo
 			// Global tag strategy
 			const lastTag = await getLastTag(undefined, options.git.tagTemplate, options.git.tagFilter);
 			logger.debug('Last tag determined', { lastTag });
-			commits = await getCommits(lastTag);
+			commits = await getCommits(lastTag, undefined, packages);
 		}
 		setCachedCommits(commitCacheKey, commits);
 		logger.debug('Commits retrieved', { count: commits.length });
