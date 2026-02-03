@@ -47,6 +47,6 @@ export async function handleGithub(options: ResolvedMonupOptions): Promise<void>
 		logger.debug('Creating GitHub release', { version, pkg: pkg.name, tagName });
 		logger.trace('GitHub options', githubOptions);
 		logger.trace('Git options', options.git);
-		await createRelease(version, pkg.name, tagName, githubOptions, options.git, changelogPath);
+		await createRelease(version, pkg.name, tagName, githubOptions, options.git, changelogPath, packages);
 	}
 }

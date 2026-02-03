@@ -123,6 +123,21 @@ export async function getCurrentBranch(root: string = cwd()): Promise<string> {
 	return result.stdout.trim();
 }
 
+/**
+ * Checks if a git ref (tag, branch, commit) exists
+ * @param ref - The ref to check
+ * @param root - Root directory for git operations (default: current working directory)
+ */
+export async function refExists(ref: string, root: string = cwd()): Promise<boolean> {
+	try {
+		await $({ cwd: root })`git rev-parse --verify ${ref}`.quiet();
+		return true;
+	}
+	catch {
+		return false;
+	}
+}
+
 const scopedTagPattern = regex('^(?<package>[^@]+)@(?<version>.+)$', 'i');
 /**
  * Gets the last tags for multiple packages when using scoped tags (package`@`version format)

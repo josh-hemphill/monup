@@ -1,4 +1,4 @@
-import type { GitOptions } from '@monup/git';
+import type { GitOptions, PackageInfo } from '@monup/git';
 import type { GitHubOptionsWithDeps } from './options.ts';
 /**
  * GitHub release creation and listing
@@ -12,6 +12,7 @@ import { logger } from './logger.ts';
 /**
  * Creates a GitHub release
  * Accepts GitHubOptionsWithDeps (includes partial changelog options)
+ * If packages are provided, they are passed to changelog extraction for filtering.
  */
 export async function createRelease(
 	version: string,
@@ -20,6 +21,7 @@ export async function createRelease(
 	options: GitHubOptionsWithDeps,
 	gitOptions: GitOptions,
 	changelogPath?: string,
+	packages?: PackageInfo[],
 ): Promise<void> {
 	const githubOpts: GitHubOptionsWithDeps = options;
 
@@ -30,6 +32,7 @@ export async function createRelease(
 		githubOpts,
 		gitOptions,
 		changelogPath,
+		packages,
 	);
 
 	// Build release payload

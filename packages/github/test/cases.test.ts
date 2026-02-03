@@ -19,8 +19,9 @@ describe('extractor', () => {
 			},
 			changelogMethod: 'markers',
 		};
+		const gitOptions = {};
 
-		const changelog = await extractChangelogForRelease('1.0.0', 'test-package', options, changelogPath);
+		const changelog = await extractChangelogForRelease('1.0.0', 'test-package', options, gitOptions, changelogPath);
 		expect(typeof changelog).toBe('string');
 		expect(changelog?.length).toBeGreaterThan(0);
 		expect(changelog).toContain('1.0.0');
@@ -35,8 +36,9 @@ describe('extractor', () => {
 			},
 			changelogMethod: 'markers',
 		};
+		const gitOptions = {};
 
-		const changelog = await extractChangelogForRelease('2.0.0', 'test-package', options, changelogPath);
+		const changelog = await extractChangelogForRelease('2.0.0', 'test-package', options, gitOptions, changelogPath);
 		expect(changelog).toBeUndefined();
 	});
 });
