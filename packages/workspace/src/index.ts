@@ -38,10 +38,10 @@ export async function detectPackages(root: string = cwd()): Promise<PackageInfo[
 
 	const packages: PackageInfo[] = [];
 	for (const handler of handlers) {
-		const packages = await handler.detectPackages(root);
-		logger.debug(`${handler.constructor.name} detected ${packages.length} packages`);
-		logger.trace(`${handler.constructor.name} detected ${packages.map((p) => [p.name, p.path].join(': ')).join(', ')}`);
-		packages.push(...packages);
+		const detected = await handler.detectPackages(root);
+		logger.debug(`${handler.constructor.name} detected ${detected.length} packages`);
+		logger.trace(`${handler.constructor.name} detected ${detected.map((p) => [p.name, p.path].join(': ')).join(', ')}`);
+		packages.push(...detected);
 	}
 
 	return packages;
@@ -51,18 +51,20 @@ async function detectRootAsPackage(root: string): Promise<PackageInfo[]> {
 	logger.trace('Detecting root as single package', { root });
 	const packages: PackageInfo[] = [];
 
+	// Check for package.json first
+	const packageJson = await getNpmJson(root, root);
+	if (packageJson !== undefined) {
+		logger.debug('Root package detected from package.json', { name: packageJson.name });
+		packages.push(packageJson);
+	}
+
+	// Check for jsr.json
 	const maybeJsrJson = await getJsrJson(root, root);
 	if (maybeJsrJson !== undefined) {
 		logger.debug('Root package detected as jsr.json member', { name: maybeJsrJson.name });
 		packages.push(maybeJsrJson);
 	}
 
-	// Check for package.json
-	const packageJson = await getNpmJson(root, root);
-	if (packageJson !== undefined) {
-		logger.debug('Root package detected from package.json', { name: packageJson.name });
-		packages.push(packageJson);
-	}
 	// Check for deno.json
 	const denoJson = await getDenoJson(root, root);
 	if (denoJson !== undefined) {

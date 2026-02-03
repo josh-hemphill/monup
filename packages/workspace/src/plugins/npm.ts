@@ -37,7 +37,7 @@ export class NpmWorkspaceDetector implements WorkspaceDetector {
 
 		for (const workspace of workspaces) {
 			try {
-				const matches = await glob(workspace, { cwd: root });
+				const matches = await glob(workspace, { cwd: root, onlyDirectories: true });
 				for (const match of matches) {
 					const packagePath = path.resolve(root, match);
 					const packageInfo = await getNpmJson(packagePath, root);

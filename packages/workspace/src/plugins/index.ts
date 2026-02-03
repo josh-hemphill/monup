@@ -34,13 +34,13 @@ export function registerDetector(detector: WorkspaceDetector): void {
  * Gets the appropriate detector for a workspace
  */
 export async function getHandlers(root: string): Promise<WorkspaceDetector[]> {
-	const detectors: WorkspaceDetector[] = [];
+	const handlers: WorkspaceDetector[] = [];
 	for (const detector of detectors) {
 		if (await detector.canHandle(root)) {
-			detectors.push(detector);
+			handlers.push(detector);
 		}
 	}
-	return detectors;
+	return handlers;
 }
 
 /**

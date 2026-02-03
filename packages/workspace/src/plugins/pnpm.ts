@@ -55,7 +55,7 @@ export class PnpmWorkspaceDetector implements WorkspaceDetector {
 		const packages: PackageInfo[] = [];
 
 		try {
-			const matches = await glob(pattern, { cwd: root });
+			const matches = await glob(pattern, { cwd: root, onlyDirectories: true });
 			for (const match of matches) {
 				const packagePath = path.resolve(root, match);
 				const packageInfo = await getNpmJson(packagePath, root);

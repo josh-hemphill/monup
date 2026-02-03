@@ -88,7 +88,8 @@ describe('filterCommitsByPackage', () => {
 		expect(scopedCommits.get('package1')?.length).toBe(1);
 		expect(scopedCommits.get('package1')?.[0]?.hash).toBe('abc123');
 
-		expect(unscopedCommits.size).toBe(0);
+		expect(unscopedCommits.size).toBe(1);
+		expect([...unscopedCommits][0]?.hash).toBe('def456');
 	});
 
 	it('should initialize empty arrays for all packages', () => {

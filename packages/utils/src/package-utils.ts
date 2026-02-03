@@ -9,6 +9,6 @@
  * @returns Package name or path
  */
 export function extractPackageName(configName: string | undefined, packagePath: string): string {
-	return typeof configName === 'string' ? configName : packagePath;
+	return typeof configName === 'string' ? configName : 'root';
 }
 
