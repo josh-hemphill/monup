@@ -1,6 +1,7 @@
 import type { PackageInfo } from './filter.ts';
 import type { ParsedCommit } from './parser.ts';
 import { cwd } from 'node:process';
+import { relative } from 'node:path';
 /**
  * Streaming git log parser that maps files to packages
  */
@@ -18,12 +19,12 @@ interface CommitHeader {
 }
 type Join<T extends ReadonlyArray<string>, S extends string = ''>
 	= T extends Readonly<[infer First, ...infer Rest]>
-		? Rest extends ReadonlyArray<string>
-			? First extends string
-				? `${First}${Rest extends [] ? '' : S}${Join<Rest, S>}`
-				: never
-			: never
-		: '';
+	? Rest extends ReadonlyArray<string>
+	? First extends string
+	? `${First}${Rest extends [] ? '' : S}${Join<Rest, S>}`
+	: never
+	: never
+	: '';
 /**
  * Commit header regex with pipe delimiter
  */
@@ -42,23 +43,20 @@ const commitHeaderRegex = regex(`^${sR.join('\\|') as Join<typeof sR>}$`);
  */
 function mapFileToPackage(filePath: string, packages: PackageInfo[], root: string): string | undefined {
 	logger.trace('Mapping file to package', { filePath });
+	const normalizeForComparison = (value: string): string => value.replaceAll('\\', '/');
+
 	// Normalize file path - git outputs relative paths from repo root
-	const normalizedPath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+	const normalizedPath = normalizeForComparison(filePath.startsWith('./') ? filePath.slice(2) : filePath);
 
 	// Find packages that match this file path
 	// Compare using relative paths from root
 	const matchingPackages = packages
 		.filter((pkg) => {
-			// Package path is relative to pkg.root, normalize it relative to root
-			const rootEndsWithSeparator = root.endsWith('/') || root.endsWith('\\');
-			const packageRelativePath = pkg.path.startsWith(root)
-				? pkg.path.slice(root.length + (rootEndsWithSeparator ? 0 : 1))
-				: pkg.path;
+			const packageRelativePath = normalizeForComparison(relative(root, pkg.path));
 
 			// Check if file path starts with package path
 			return normalizedPath.startsWith(`${packageRelativePath}/`)
 				|| normalizedPath === packageRelativePath
-				|| normalizedPath.startsWith(`${packageRelativePath}\\`);
 		})
 		.sort((a, b) => {
 			// Sort by longest path first (most specific match)
@@ -152,11 +150,6 @@ export async function* streamGitCommits(
 				lines.push(parsed);
 			}
 		}
-		const parsed = parseLine(buffer.trim());
-		if (parsed !== null) {
-			lines.push(parsed);
-			buffer = '';
-		}
 		for (const parsed of lines) {
 			if (parsed.type === 'commit') {
 				// Finish previous commit if any
@@ -198,7 +191,31 @@ export async function* streamGitCommits(
 	if (buffer.trim().length > 0) {
 		const parsed = parseLine(buffer.trim());
 		if (parsed !== null) {
-			if (parsed.type === 'file' && typeof currentCommit !== 'undefined') {
+			if (parsed.type === 'commit') {
+				// Finish previous commit if any
+				const previousCommit = finishCommit();
+				if (previousCommit !== undefined) {
+					yield previousCommit;
+				}
+
+				// Start new commit
+				const { header } = parsed;
+				logger.trace('Parsing new commit', { hash: header.hash.slice(0, 7), subject: header.subject });
+				const parsedConventional = parseConventionalCommit(header.subject);
+
+				currentCommit = {
+					hash: header.hash,
+					message: header.subject,
+					body: header.body || undefined,
+					author: `${header.author} <${header.email}>`,
+					date: header.date,
+					type: parsedConventional.type,
+					scope: parsedConventional.scope,
+					subject: parsedConventional.subject,
+					breaking: parsedConventional.breaking,
+				};
+			}
+			else if (parsed.type === 'file' && typeof currentCommit !== 'undefined') {
 				const packageName = mapFileToPackage(parsed.path, packages, root);
 				if (typeof packageName === 'string') {
 					touchedPackages.add(packageName);
