@@ -1,37 +1,37 @@
 {
-	"name": "@monup/cli",
-	"type": "module",
-	"version": "0.0.1",
-	"private": true,
-	"exports": {
-		"types": "./dist/index.d.mts",
-		"import": "./dist/index.mjs",
-		"typescript": "./src/index.ts"
-	},
-	"main": "dist/index.mjs",
-	"types": "dist/index.d.mts",
-	"bin": {
-		"monup": "bin/monup.mjs"
-	},
-	"scripts": {
-		"build": "node build.config.ts",
-		"test": "vitest run",
-		"lint": "eslint .",
-		"format": "eslint . --fix"
-	},
-	"dependencies": {
-		"@monup/changelog": "workspace:*",
-		"@monup/git": "workspace:*",
-		"@monup/github": "workspace:*",
-		"@monup/options": "workspace:*",
-		"@monup/release": "workspace:*",
-		"@monup/utils": "workspace:*",
-		"@monup/version": "workspace:*",
-		"@monup/workspace": "workspace:*",
-		"cac": "catalog:cli",
-		"loglevel": "catalog:logging"
-	},
-	"devDependencies": {
-		"obuild": "catalog:build"
-	}
+  "name": "@monup/cli",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "types": "./dist/index.d.mts",
+    "import": "./dist/index.mjs",
+    "typescript": "./src/index.ts"
+  },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "bin": {
+    "monup": "bin/monup.mjs"
+  },
+  "scripts": {
+    "build": "node build.config.ts",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "@monup/changelog": "workspace:*",
+    "@monup/git": "workspace:*",
+    "@monup/github": "workspace:*",
+    "@monup/options": "workspace:*",
+    "@monup/release": "workspace:*",
+    "@monup/utils": "workspace:*",
+    "@monup/version": "workspace:*",
+    "@monup/workspace": "workspace:*",
+    "cac": "catalog:cli",
+    "loglevel": "catalog:logging"
+  },
+  "devDependencies": {
+    "obuild": "catalog:build"
+  }
 }
