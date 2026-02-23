@@ -1,28 +1,28 @@
 {
-	"name": "@monup/utils",
-	"type": "module",
-	"version": "0.0.1",
-	"private": true,
-	"exports": {
-		"types": "./dist/index.d.mts",
-		"import": "./dist/index.mjs",
-		"typescript": "./src/index.ts"
-	},
-	"main": "dist/index.mjs",
-	"types": "dist/index.d.mts",
-	"scripts": {
-		"build": "node build.config.ts",
-		"test": "vitest run",
-		"lint": "eslint .",
-		"format": "eslint . --fix"
-	},
-	"dependencies": {
-		"jsonc-parser": "catalog:cli",
-		"loglevel": "catalog:logging"
-	},
-	"devDependencies": {
-		"obuild": "catalog:build",
-		"vitest": "catalog:dev",
-		"zx": "catalog:cli"
-	}
+  "name": "@monup/utils",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "types": "./dist/index.d.mts",
+    "import": "./dist/index.mjs",
+    "typescript": "./src/index.ts"
+  },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "scripts": {
+    "build": "node build.config.ts",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "jsonc-parser": "catalog:cli",
+    "loglevel": "catalog:logging"
+  },
+  "devDependencies": {
+    "obuild": "catalog:build",
+    "vitest": "catalog:dev",
+    "zx": "catalog:cli"
+  }
 }
