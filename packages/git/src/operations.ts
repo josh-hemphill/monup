@@ -1,8 +1,9 @@
-import { $ } from 'zx';
 /**
  * Git operations: commit, push, tag with signing support
  */
+import { normalizePathForComparison } from '@monup/utils';
 import { logger } from './logger.ts';
+import { spawnGit } from './spawn.ts';
 
 /**
  * Creates a git commit with optional signing
@@ -12,8 +13,10 @@ export async function createCommit(
 	files: string[],
 	sign = false,
 	noVerify = false,
+	cwd?: string,
 ): Promise<void> {
-	logger.debug('Creating git commit', { message, files: files.length, sign, noVerify });
+	const normalizedFiles = files.map((filePath) => normalizePathForComparison(filePath));
+	logger.debug('Creating git commit', { message, files: normalizedFiles.length, sign, noVerify });
 	const args = ['commit'];
 
 	if (sign) {
@@ -28,12 +31,12 @@ export async function createCommit(
 
 	args.push('-m', message);
 
-	if (files.length > 0) {
-		args.push(...files);
-		logger.trace('Files to commit', { files });
+	if (normalizedFiles.length > 0) {
+		args.push('--', ...normalizedFiles);
+		logger.trace('Files to commit', { files: normalizedFiles });
 	}
 
-	await $`git ${args}`;
+	await spawnGit(args, { cwd, stdio: 'inherit' });
 	logger.debug('Commit created successfully');
 }
 
@@ -49,7 +52,7 @@ export async function pushToRemote(branch?: string, remote = 'origin'): Promise<
 		logger.trace('Pushing specific branch', { branch });
 	}
 
-	await $`git ${args}`;
+	await spawnGit(args, { stdio: 'inherit' });
 	logger.debug('Push completed successfully');
 }
 
@@ -76,7 +79,7 @@ export async function createTag(
 
 	args.push(tagName);
 
-	await $`git ${args}`;
+	await spawnGit(args, { stdio: 'inherit' });
 	logger.debug('Tag created successfully', { tagName });
 }
 

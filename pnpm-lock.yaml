@@ -207,6 +207,9 @@ importers:
 
   packages/git:
     dependencies:
+      '@monup/utils':
+        specifier: workspace:*
+        version: link:../utils
       arkregex:
         specifier: catalog:dev
         version: 0.0.4
@@ -285,6 +288,9 @@ importers:
 
   packages/release:
     dependencies:
+      '@monup/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@monup/workspace':
         specifier: workspace:*
         version: link:../workspace

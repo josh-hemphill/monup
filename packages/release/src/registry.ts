@@ -5,9 +5,10 @@ import type { PackageInfo } from '@monup/workspace';
 import type { PublishType } from './detector.ts';
 import type { ResolvedReleaseOptions } from './options.ts';
 import { getErrorMessage, parseJson, sortVersionsDescending } from '@monup/utils';
-import { $, fs } from 'zx';
+import { fs } from 'zx';
 import { detectPackageManager } from './detector.ts';
 import { logger } from './logger.ts';
+import { spawnCommand } from './spawn.ts';
 
 /**
  * Lists published versions for an npm package
@@ -44,8 +45,8 @@ async function listNpmVersions(
 			args.push('--registry', registry);
 		}
 
-		const result = await $`${command} ${args}`.text();
-		const output = result.trim();
+		const result = await spawnCommand(command, args, { capture: 'text' });
+		const output = (typeof result === 'string' ? result : '').trim();
 
 		if (output.length === 0) {
 			logger.debug('No versions found for npm package', { packageName });

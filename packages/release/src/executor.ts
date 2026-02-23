@@ -6,8 +6,8 @@
 import type { DetectResult } from 'package-manager-detector';
 import type { CommandConfig, PublishType } from './detector.ts';
 import { resolveCommand } from 'package-manager-detector';
-import { $ } from 'zx';
 import { logger } from './logger.ts';
+import { spawnCommand } from './spawn.ts';
 
 export interface ContextualizedCommand {
 	command: string;
@@ -71,6 +71,5 @@ export async function executePublish(
 		cwd,
 	});
 
-	// Execute the command directly using zx
-	await $({ cwd })`${command.command} ${command.args}`;
+	await spawnCommand(command.command, command.args, { cwd, capture: 'inherit' });
 }

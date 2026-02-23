@@ -7,7 +7,7 @@
 import { tmpdir } from 'node:os';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { $, cd, fs, path } from 'zx';
-import { getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getLastTag, isPrerelease } from '../src/index.ts';
+import { createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getLastTag, isPrerelease } from '../src/index.ts';
 import { mockPackages } from './mock.ts';
 
 describe('git package - shell command test cases', () => {
@@ -129,6 +129,17 @@ describe('git package - shell command test cases', () => {
 			expect(repository.length).toBeGreaterThan(0);
 			expect(repository.includes('/')).toBe(true);
 		}
+	});
+
+	it('should create commit with pathspec normalization', async () => {
+		await fs.writeFile(path.join(testRepoDir, 'package.json'), JSON.stringify({
+			name: 'test-package',
+			version: '1.0.1',
+		}, null, 2), 'utf-8');
+		// createCommit uses spawn (no shell) and normalizes paths; cwd ensures git runs in repo
+		await createCommit('chore: bump version', ['package.json'], false, true, testRepoDir);
+		const lastCommit = await $({ cwd: testRepoDir })`git log -1 --format=%s`.quiet();
+		expect(lastCommit.stdout.trim()).toBe('chore: bump version');
 	});
 
 	it('should detect prerelease branches', () => {

@@ -7,11 +7,12 @@ import type { PackageInfo } from '@monup/workspace';
 import type { AgentName, DetectResult } from 'package-manager-detector';
 import type { ResolvedReleaseOptions } from './options.ts';
 import { join, resolve } from 'node:path';
-import { parseJson, parseJsonc } from '@monup/utils';
+import { normalizePathForComparison, parseJson, parseJsonc } from '@monup/utils';
 import { detect } from 'package-manager-detector';
-import { $, fs, glob, path, which } from 'zx';
+import { fs, glob, path, which } from 'zx';
 import { logger } from './logger.ts';
 import { resolveAgent } from './pmd-internals.ts';
+import { spawnCommand } from './spawn.ts';
 
 export type PublishType = 'npm' | 'jsr';
 
@@ -70,8 +71,8 @@ async function getCommandAvailability(
 
 async function getCommandRunVersion(commandPath: string): Promise<string | undefined> {
 	try {
-		const version = await $`${commandPath} --version`.text();
-		return version.trim();
+		const result = await spawnCommand(commandPath, ['--version'], { capture: 'text' });
+		return typeof result === 'string' ? result.trim() : undefined;
 	}
 	catch (error: unknown) {
 		logger.debug('Failed to get command version', {
@@ -90,10 +91,13 @@ async function isPackageInWorkspace(
 	workspaceRoot: string,
 	pattern: string,
 ): Promise<boolean> {
-	const posixPackagePath = path.posix.join(...packagePath.split(path.sep));
+	const normPackagePath = normalizePathForComparison(path.posix.join(...packagePath.split(path.sep)));
 	try {
 		const matches = await glob(pattern, { cwd: workspaceRoot, onlyDirectories: true, absolute: true });
-		return matches.some((match) => posixPackagePath === match || posixPackagePath.startsWith(`${match}/`));
+		return matches.some((match) => {
+			const normMatch = normalizePathForComparison(match);
+			return normPackagePath === normMatch || normPackagePath.startsWith(`${normMatch}/`);
+		});
 	}
 	catch {
 		return false;

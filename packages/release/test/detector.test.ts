@@ -26,6 +26,17 @@ vi.mock('zx', async () => {
 	};
 });
 
+// Mock spawn to avoid spawning real commands (which may not exist on Windows)
+// Simulate "command not found" by returning undefined (getCommandRunVersion catches throw)
+vi.mock('../src/spawn.ts', () => ({
+	spawnCommand: vi.fn(async (_cmd: string, _args: string[], opts?: { capture?: string }) => {
+		if (opts?.capture === 'text') {
+			// Throw to simulate missing command; getCommandRunVersion catches and returns undefined
+			throw new Error('ENOENT');
+		}
+	}),
+}));
+
 // Mock package-manager-detector
 vi.mock('package-manager-detector', async () => {
 	const actual = await vi.importActual<typeof pmd>('package-manager-detector');

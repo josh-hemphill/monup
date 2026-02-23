@@ -17,6 +17,7 @@
 		"format": "eslint . --fix"
 	},
 	"dependencies": {
+		"@monup/utils": "workspace:*",
 		"@monup/workspace": "workspace:*",
 		"loglevel": "catalog:logging",
 		"package-manager-detector": "catalog:cli",

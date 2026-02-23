@@ -1,10 +1,11 @@
 import type { PackageInfo } from './filter.ts';
 import type { ParsedCommit } from './parser.ts';
-import { cwd } from 'node:process';
 import { relative } from 'node:path';
+import { cwd } from 'node:process';
 /**
  * Streaming git log parser that maps files to packages
  */
+import { normalizePathForComparison } from '@monup/utils';
 import { regex } from 'arkregex';
 import { logger } from './logger.ts';
 import { parseConventionalCommit } from './parser.ts';
@@ -43,20 +44,19 @@ const commitHeaderRegex = regex(`^${sR.join('\\|') as Join<typeof sR>}$`);
  */
 function mapFileToPackage(filePath: string, packages: PackageInfo[], root: string): string | undefined {
 	logger.trace('Mapping file to package', { filePath });
-	const normalizeForComparison = (value: string): string => value.replaceAll('\\', '/');
 
 	// Normalize file path - git outputs relative paths from repo root
-	const normalizedPath = normalizeForComparison(filePath.startsWith('./') ? filePath.slice(2) : filePath);
+	const normalizedPath = normalizePathForComparison(filePath.startsWith('./') ? filePath.slice(2) : filePath);
 
 	// Find packages that match this file path
 	// Compare using relative paths from root
 	const matchingPackages = packages
 		.filter((pkg) => {
-			const packageRelativePath = normalizeForComparison(relative(root, pkg.path));
+			const packageRelativePath = normalizePathForComparison(relative(root, pkg.path));
 
 			// Check if file path starts with package path
 			return normalizedPath.startsWith(`${packageRelativePath}/`)
-				|| normalizedPath === packageRelativePath
+				|| normalizedPath === packageRelativePath;
 		})
 		.sort((a, b) => {
 			// Sort by longest path first (most specific match)

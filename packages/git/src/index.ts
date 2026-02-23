@@ -9,6 +9,7 @@ import { $ } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { logger } from './logger.ts';
 import { parseGitLog } from './parser.ts';
+import { spawnGit } from './spawn.ts';
 import { streamGitCommits } from './streamer.ts';
 import { escapeRegex } from './tag-utils.ts';
 
@@ -108,8 +109,8 @@ export async function getCommits(
 
 	// Fallback to non-streaming parsing if packages not needed
 	logger.debug('Using non-streaming git log parsing', { args: args.join(' ') });
-	const result = await $({ cwd: root })`git ${args}`.quiet();
-	const commits = parseGitLog(result.stdout);
+	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
+	const commits = parseGitLog(stdout);
 	logger.debug('Parsed commits', { count: commits.length });
 	return commits;
 }
@@ -119,8 +120,8 @@ export async function getCommits(
  * @param root - Root directory for git operations (default: current working directory)
  */
 export async function getCurrentBranch(root: string = cwd()): Promise<string> {
-	const result = await $({ cwd: root })`git rev-parse --abbrev-ref HEAD`.quiet();
-	return result.stdout.trim();
+	const { stdout } = await spawnGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: root, stdio: 'pipe' });
+	return stdout.trim();
 }
 
 /**
@@ -130,7 +131,7 @@ export async function getCurrentBranch(root: string = cwd()): Promise<string> {
  */
 export async function refExists(ref: string, root: string = cwd()): Promise<boolean> {
 	try {
-		await $({ cwd: root })`git rev-parse --verify ${ref}`.quiet();
+		await spawnGit(['rev-parse', '--verify', ref], { cwd: root, stdio: 'pipe' });
 		return true;
 	}
 	catch {
@@ -165,8 +166,8 @@ export async function getLastPackageTags(
 	// Use git's pattern matching with multiple patterns and sorting
 	const args = ['tag', '-l', ...patterns, '--sort=-version:refname'];
 	logger.debug('Git tags command', `git ${args.join(' ')}`);
-	const result = await $({ cwd: root })`git ${args}`.quiet().lines();
-	const allTags = result.filter((tag) => tag.length > 0);
+	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
+	const allTags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
 
 	logger.debug('Filtered package tags', { count: allTags.length, packageCount: packageNames.length });
 
@@ -242,8 +243,8 @@ export async function getLastTag(
 	// Sort by version
 	args.push('--sort=-version:refname');
 
-	const result = await $({ cwd: root })`git ${args}`.quiet().lines();
-	let tags = result.filter((tag) => tag.length > 0);
+	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
+	let tags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
 
 	logger.debug('Found tags', { count: tags.length });
 
@@ -286,8 +287,8 @@ export async function getLastTag(
  */
 export async function getFirstCommit(root: string = cwd()): Promise<string | undefined> {
 	try {
-		const result = await $({ cwd: root })`git rev-list --max-parents=0 HEAD`.quiet();
-		const trimmed = result.stdout.trim();
+		const { stdout } = await spawnGit(['rev-list', '--max-parents=0', 'HEAD'], { cwd: root, stdio: 'pipe' });
+		const trimmed = stdout.trim();
 		return trimmed.length > 0 ? trimmed : undefined;
 	}
 	catch {
@@ -302,8 +303,8 @@ export async function getFirstCommit(root: string = cwd()): Promise<string | und
  */
 export async function getGitHubRepo(baseUrl = 'github.com', root: string = cwd()): Promise<string | undefined> {
 	try {
-		const result = await $({ cwd: root })`git remote get-url origin`.quiet();
-		const url = result.stdout.trim();
+		const { stdout } = await spawnGit(['remote', 'get-url', 'origin'], { cwd: root, stdio: 'pipe' });
+		const url = stdout.trim();
 
 		// Parse various git URL formats
 		// git@github.com:user/repo.git
