@@ -71,14 +71,17 @@ describe('workspace package - core functionality', () => {
 			expect(packages[0]?.root).toBe(singlePackageDir);
 		});
 
-		it('should detect both package.json and jsr.json as two packages in same directory', async () => {
+		it('should merge package.json and jsr.json in same directory into one logical package', async () => {
 			const packages = await detectPackages(npmAndJsrDir);
 			expect(Array.isArray(packages)).toBe(true);
-			expect(packages.length).toBe(2);
+			expect(packages.length).toBe(1);
 			expect(packages[0]?.name).toBe('pkg1');
-			expect(packages[1]?.name).toBe('pkg1');
+			expect(packages[0]?.path).toBe(npmAndJsrDir);
 			expect(packages[0]?.packageFile).toBe(join(npmAndJsrDir, 'package.json'));
-			expect(packages[1]?.packageFile).toBe(join(npmAndJsrDir, 'jsr.json'));
+			expect(packages[0]?.packageFiles).toEqual([
+				join(npmAndJsrDir, 'jsr.json'),
+				join(npmAndJsrDir, 'package.json'),
+			]);
 		});
 	});
 

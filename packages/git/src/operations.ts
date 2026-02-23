@@ -56,14 +56,32 @@ export async function pushToRemote(branch?: string, remote = 'origin'): Promise<
 	logger.debug('Push completed successfully');
 }
 
+/** Returns true if the given tag ref exists. */
+async function tagExists(tagName: string, cwd?: string): Promise<boolean> {
+	try {
+		await spawnGit(['rev-parse', '--verify', tagName], { cwd, stdio: 'pipe' });
+		return true;
+	}
+	catch {
+		return false;
+	}
+}
+
 /**
  * Creates a git tag with optional signing
+ * Skips creation if the tag already exists (idempotent).
  */
 export async function createTag(
 	tagName: string,
 	message?: string,
 	sign = false,
+	cwd?: string,
 ): Promise<void> {
+	const exists = await tagExists(tagName, cwd);
+	if (exists) {
+		logger.debug('Tag already exists, skipping creation', { tagName });
+		return;
+	}
 	logger.debug('Creating git tag', { tagName, hasMessage: typeof message === 'string', sign });
 	const args = ['tag'];
 
@@ -79,7 +97,7 @@ export async function createTag(
 
 	args.push(tagName);
 
-	await spawnGit(args, { stdio: 'inherit' });
+	await spawnGit(args, { cwd, stdio: 'inherit' });
 	logger.debug('Tag created successfully', { tagName });
 }
 

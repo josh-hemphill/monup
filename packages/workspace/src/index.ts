@@ -24,6 +24,51 @@ registerDetector(new DenoWorkspaceDetector());
 
 export { logger } from './logger.ts';
 
+/** Picks canonical manifest for reading version: package.json > jsr.json/jsr.jsonc > deno.json > first */
+function pickCanonicalManifest(paths: string[]): string {
+	const byPreference = (p: string): number => {
+		if (p.endsWith('package.json')) return 0;
+		if (p.includes('jsr.json')) return 1;
+		if (p.endsWith('deno.json')) return 2;
+		return 3;
+	};
+	const sorted = [...paths].sort((a, b) => byPreference(a) - byPreference(b));
+	return sorted[0] ?? '';
+}
+
+/** Merges multiple manifest entries for the same path into one logical package with all manifest paths. */
+function mergePackagesByPath(raw: PackageInfo[]): PackageInfo[] {
+	const byPath = new Map<string, PackageInfo[]>();
+	for (const pkg of raw) {
+		const key = pkg.path;
+		const list = byPath.get(key) ?? [];
+		list.push(pkg);
+		byPath.set(key, list);
+	}
+	const result: PackageInfo[] = [];
+	for (const [, group] of byPath) {
+		const manifestPaths = [...new Set(
+			group.map((p) => p.packageFile).filter((f): f is string => typeof f === 'string'),
+		)];
+		if (manifestPaths.length === 0) {
+			const first = group[0];
+			if (first !== undefined) result.push(first);
+			continue;
+		}
+		const canonical = pickCanonicalManifest(manifestPaths);
+		const canonicalEntry = group.find((p) => p.packageFile === canonical) ?? group[0];
+		if (canonicalEntry === undefined) continue;
+		result.push({
+			name: canonicalEntry.name,
+			path: canonicalEntry.path,
+			root: canonicalEntry.root,
+			packageFile: canonical,
+			packageFiles: manifestPaths.length > 1 ? manifestPaths.sort() : undefined,
+		});
+	}
+	return result;
+}
+
 /**
  * Detects packages in a workspace
  */
@@ -44,7 +89,7 @@ export async function detectPackages(root: string = cwd()): Promise<PackageInfo[
 		packages.push(...detected);
 	}
 
-	return packages;
+	return mergePackagesByPath(packages);
 }
 
 async function detectRootAsPackage(root: string): Promise<PackageInfo[]> {
@@ -76,7 +121,7 @@ async function detectRootAsPackage(root: string): Promise<PackageInfo[]> {
 		logger.debug('No root package detected');
 	}
 
-	return packages;
+	return mergePackagesByPath(packages);
 }
 
 /**
@@ -99,8 +144,10 @@ export async function updatePackageVersions(
 ): Promise<void> {
 	for (const pkg of packages) {
 		const newVersion = versionMap.get(pkg.name);
-		if (typeof newVersion === 'string' && typeof pkg.packageFile === 'string') {
-			await updateVersionInFile(pkg.packageFile, newVersion);
+		if (typeof newVersion !== 'string') continue;
+		const files = pkg.packageFiles ?? (typeof pkg.packageFile === 'string' ? [pkg.packageFile] : []);
+		for (const file of files) {
+			await updateVersionInFile(file, newVersion);
 		}
 	}
 }

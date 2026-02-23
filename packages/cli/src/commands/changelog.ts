@@ -19,8 +19,8 @@ export async function handleChangelog(options: ResolvedMonupOptions): Promise<vo
 		return;
 	}
 
-	// Get git commits since last tag (use cache if available)
-	const commitCacheKey = 'lastTag';
+	// Get git commits since last tag (use cache if available; same key as version for all workflow)
+	const commitCacheKey = options.git.tagStrategy === 'package' ? 'perPackage' : 'global';
 	let commits = getCachedCommits(commitCacheKey);
 
 	if (typeof commits === 'undefined') {

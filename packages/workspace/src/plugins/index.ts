@@ -6,7 +6,10 @@ export interface PackageInfo {
 	name: string;
 	path: string;
 	root: string;
+	/** Canonical manifest for reading version; one of the paths in packageFiles when present */
 	packageFile?: string;
+	/** All manifest paths for this logical package (version updates, commit). When set, packageFile is the canonical one. */
+	packageFiles?: string[];
 }
 
 export interface WorkspaceDetector {

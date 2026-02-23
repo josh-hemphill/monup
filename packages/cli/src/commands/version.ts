@@ -154,9 +154,13 @@ export async function handleVersion(
 			continue;
 		}
 
-		// Update version in package file
-		logger.debug('Updating version in package file', { package: pkg.name, version: finalVersion });
-		await updateVersionInFile(pkg.packageFile, finalVersion);
+		// Update version in all manifest files for this logical package (packageFiles from workspace merge)
+		const pkgWithManifests = pkg as typeof pkg & { packageFiles?: string[] };
+		const manifestFiles: string[] = pkgWithManifests.packageFiles ?? (typeof pkg.packageFile === 'string' ? [pkg.packageFile] : []);
+		logger.debug('Updating version in manifest files', { package: pkg.name, version: finalVersion, fileCount: manifestFiles.length });
+		for (const file of manifestFiles) {
+			await updateVersionInFile(file, finalVersion);
+		}
 
 		// Update version in additional files
 		if (options.version.files.length > 0) {
@@ -168,9 +172,10 @@ export async function handleVersion(
 			);
 		}
 
-		// Git operations
+		// Git operations: single commit with all manifest paths + additional files
 		if (options.git.commit) {
-			logger.debug('Creating git commit', { package: pkg.name });
+			const commitFiles: string[] = [...manifestFiles, ...options.version.files];
+			logger.debug('Creating git commit', { package: pkg.name, fileCount: commitFiles.length });
 			const tagName = options.git.tagStrategy === 'package'
 				? `${pkg.name}@${finalVersion}`
 				: formatTag(options.git.tagTemplate, finalVersion);
@@ -178,7 +183,7 @@ export async function handleVersion(
 
 			await createCommit(
 				`chore: bump ${pkg.name} to ${finalVersion}`,
-				[pkg.packageFile, ...options.version.files],
+				commitFiles,
 				options.git.sign,
 				options.git.noVerify,
 			);
