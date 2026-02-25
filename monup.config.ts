@@ -12,6 +12,8 @@ const config: MonupOptions = defineConfig({
 	changelog: {
 		strategy: 'per-package',
 		location: 'CHANGELOG.md',
+		commitLinks: true,
+		issueLinks: true,
 		contributors: true,
 	},
 	release: {

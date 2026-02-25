@@ -1,9 +1,11 @@
 import type { ParsedCommit } from '@monup/git';
+import { getGitHubRepo } from '@monup/git';
 import type { ChangelogOptions } from './options.ts';
 /**
  * Changelog generation from conventional commits
  */
 import { dirname } from 'node:path';
+import { cwd } from 'node:process';
 import { sortVersionsDescending } from '@monup/utils';
 import { fs } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
@@ -13,7 +15,7 @@ import { createVersionMarkers, extractVersionChangelog, findVersionMarkers } fro
 import { resolveChangelogPath } from './path-resolver.ts';
 import { resolveVersionWithFallback } from './version-utils.ts';
 
-export { formatChangelogSections, formatCommitMessage, groupCommits } from './formatter.ts';
+export { buildCommitUrl, formatChangelogSections, formatCommitMessage, groupCommits } from './formatter.ts';
 export { logger } from './logger.ts';
 export { createVersionMarkers, extractVersionChangelog, findVersionMarkers } from './markers.ts';
 
@@ -40,9 +42,37 @@ export async function generateChangelog(
 	const grouped = groupCommits(commits, changelogOpts);
 	logger.trace('Commits grouped', { groupCount: grouped.size });
 
+	// Resolve commit URL template for links (owner/repo from git remote when template uses them)
+	let optsForFormatter: ChangelogOptions = changelogOpts;
+	if (changelogOpts.commitLinks && typeof changelogOpts.commitUrlTemplate === 'string' && changelogOpts.commitUrlTemplate.length > 0) {
+		const template = changelogOpts.commitUrlTemplate;
+		const needsOwnerRepo = template.includes('{{owner}}') || template.includes('{{repo}}');
+		if (needsOwnerRepo) {
+			const repoSlug = await getGitHubRepo('github.com', cwd());
+			if (typeof repoSlug === 'string') {
+				const [owner, repo] = repoSlug.split('/');
+				if (typeof owner === 'string' && typeof repo === 'string') {
+					const resolved = template
+						.replace(/\{\{owner\}\}/g, owner)
+						.replace(/\{\{repo\}\}/g, repo);
+					optsForFormatter = { ...changelogOpts, resolvedCommitUrlTemplate: resolved };
+				}
+				else {
+					optsForFormatter = { ...changelogOpts, resolvedCommitUrlTemplate: '' };
+				}
+			}
+			else {
+				optsForFormatter = { ...changelogOpts, resolvedCommitUrlTemplate: '' };
+			}
+		}
+		else {
+			optsForFormatter = { ...changelogOpts, resolvedCommitUrlTemplate: template };
+		}
+	}
+
 	// Format sections
 	logger.debug('Formatting changelog sections');
-	const sections = formatChangelogSections(grouped, changelogOpts);
+	const sections = formatChangelogSections(grouped, optsForFormatter);
 	logger.trace('Sections formatted', { sectionCount: sections.length });
 
 	// Build changelog entry

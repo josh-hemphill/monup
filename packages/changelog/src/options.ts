@@ -73,6 +73,33 @@ export interface ChangelogOptions {
 	 * @default '1.0.0'
 	 */
 	defaultVersion?: string;
+	/**
+	 * Whether to append a markdown link for the commit hash to each changelog bullet.
+	 * Only applied when commit URL template is set or resolved.
+	 * @default false
+	 */
+	commitLinks?: boolean;
+	/**
+	 * URL template for commit links. Placeholders: {{hash}}, and for GitHub default {{owner}}/{{repo}}.
+	 * @default 'https://github.com/{{owner}}/{{repo}}/commit/{{hash}}'
+	 */
+	commitUrlTemplate?: string;
+	/**
+	 * When true, use the full first line (e.g. feat(api): add foo) instead of only the subject.
+	 * @default false
+	 */
+	keepTypePrefix?: boolean;
+	/**
+	 * Resolved commit URL template (only {{hash}} left). Set by generateChangelog; do not set in config.
+	 * @internal
+	 */
+	resolvedCommitUrlTemplate?: string;
+	/**
+	 * Order of commit-type sections under a version. Types in this list are emitted in this order;
+	 * types not in the list are emitted after, in map iteration order.
+	 * @default ['feat', 'fix', 'perf']
+	 */
+	typeOrder?: string[];
 }
 
 export const defaultChangelogOptions: Required<ChangelogOptions> = {
@@ -92,4 +119,9 @@ export const defaultChangelogOptions: Required<ChangelogOptions> = {
 	capitalize: true,
 	group: true,
 	defaultVersion: '1.0.0',
+	commitLinks: false,
+	commitUrlTemplate: 'https://github.com/{{owner}}/{{repo}}/commit/{{hash}}',
+	keepTypePrefix: false,
+	resolvedCommitUrlTemplate: '',
+	typeOrder: ['feat', 'fix', 'perf'],
 };

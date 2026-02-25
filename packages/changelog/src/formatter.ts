@@ -5,6 +5,13 @@ import type { ParsedCommit } from '@monup/git';
 import type { ChangelogOptions } from './options.ts';
 import { regex } from 'arkregex';
 
+const SHORT_HASH_LENGTH = 7;
+
+/** Builds commit URL by substituting {{hash}} in the template. */
+export function buildCommitUrl(template: string, hash: string): string {
+	return template.replace(/\{\{hash\}\}/g, hash);
+}
+
 /**
  * Formats a commit message for changelog
  */
@@ -12,11 +19,25 @@ export function formatCommitMessage(
 	commit: ParsedCommit,
 	options: ChangelogOptions,
 ): string {
-	let message = typeof commit.subject === 'string' ? commit.subject : commit.message;
+	const useFullMessage = options.keepTypePrefix === true;
+	let message = useFullMessage
+		? commit.message
+		: (typeof commit.subject === 'string' ? commit.subject : commit.message);
 
-	// Capitalize if enabled
 	if (options.capitalize && message.length > 0) {
-		message = message.charAt(0).toUpperCase() + message.slice(1);
+		const colonSpace = ': ';
+		const idx = message.indexOf(colonSpace);
+		if (idx >= 0) {
+			const afterColon = message.slice(idx + colonSpace.length);
+			if (afterColon.length > 0) {
+				message = message.slice(0, idx + colonSpace.length)
+					+ afterColon.charAt(0).toUpperCase()
+					+ afterColon.slice(1);
+			}
+		}
+		else {
+			message = message.charAt(0).toUpperCase() + message.slice(1);
+		}
 	}
 
 	const scopeMap = options.scopeMap ?? {};
@@ -91,18 +112,46 @@ export function formatChangelogSections(
 		}
 	}
 
+	const commitUrlTemplateForLinks = options.resolvedCommitUrlTemplate ?? options.commitUrlTemplate ?? '';
+	const addCommitLinks = options.commitLinks === true
+		&& typeof commitUrlTemplateForLinks === 'string'
+		&& commitUrlTemplateForLinks.length > 0;
+
+	function formatBullet(commit: ParsedCommit, message: string): string {
+		if (!addCommitLinks || commit.hash.length === 0) {
+			return `- ${message}`;
+		}
+		const url = buildCommitUrl(commitUrlTemplateForLinks, commit.hash);
+		const shortHash = commit.hash.slice(0, SHORT_HASH_LENGTH);
+		return `- ${message} ([${shortHash}](${url}))`;
+	}
+
 	if (breakingCommits.length > 0) {
 		const breakingTitle = options.titles?.breakingChanges ?? '🚨 Breaking Changes';
 		sections.push(`### ${breakingTitle}\n`);
 		for (const commit of breakingCommits) {
 			const message = formatCommitMessage(commit, options);
-			sections.push(`- ${message}`);
+			sections.push(formatBullet(commit, message));
 		}
 		sections.push('');
 	}
 
+	// Order types: typeOrder first (only those present), then any remaining in map order
+	const typeOrder = options.typeOrder;
+	const orderedTypes = (Array.isArray(typeOrder) && typeOrder.length > 0)
+		? [
+			...typeOrder.filter((t) => groupedCommits.has(t)),
+			...[...groupedCommits.keys()].filter((t) => !typeOrder.includes(t)),
+		]
+		: [...groupedCommits.keys()];
+
 	// Format by type
-	for (const [type, scopes] of groupedCommits) {
+	for (const type of orderedTypes) {
+		const scopes = groupedCommits.get(type);
+		if (typeof scopes === 'undefined') {
+			continue;
+		}
+
 		const typeConfig = options.types?.[type];
 		if (typeof typeConfig === 'undefined') {
 			continue;
@@ -123,7 +172,7 @@ export function formatChangelogSections(
 					if (!commit.breaking) {
 						// Skip breaking changes as they're already handled
 						const message = formatCommitMessage(commit, options);
-						sections.push(`- ${message}`);
+						sections.push(formatBullet(commit, message));
 					}
 				}
 
@@ -137,7 +186,7 @@ export function formatChangelogSections(
 				for (const commit of commits) {
 					if (!commit.breaking) {
 						const message = formatCommitMessage(commit, options);
-						sections.push(`- ${message}`);
+						sections.push(formatBullet(commit, message));
 					}
 				}
 			}

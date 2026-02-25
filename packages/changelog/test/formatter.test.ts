@@ -70,7 +70,7 @@ describe('formatCommitMessage', () => {
 			scopeMap: { api: 'API' },
 		};
 		const result = formatCommitMessage(commit, options);
-		expect(result).toBe('API: resolve bug');
+		expect(result).toBe('API: Resolve bug');
 	});
 
 	it('should use message when subject is not available', () => {
@@ -83,6 +83,39 @@ describe('formatCommitMessage', () => {
 		};
 		const result = formatCommitMessage(commit, defaultOptions);
 		expect(result).toBe('fix: resolve bug');
+	});
+
+	it('should use full message when keepTypePrefix is true', () => {
+		const commit: ParsedCommit = {
+			hash: 'abc123',
+			message: 'feat(api): add endpoint',
+			author: 'test',
+			date: '2024-01-01',
+			type: 'feat',
+			scope: 'api',
+			subject: 'add endpoint',
+		};
+		const options: ChangelogOptions = { ...defaultOptions, keepTypePrefix: true };
+		const result = formatCommitMessage(commit, options);
+		expect(result).toBe('feat(api): add endpoint');
+	});
+
+	it('should capitalize only subject part when keepTypePrefix and capitalize are true', () => {
+		const commit: ParsedCommit = {
+			hash: 'abc123',
+			message: 'feat: add new feature',
+			author: 'test',
+			date: '2024-01-01',
+			type: 'feat',
+			subject: 'add new feature',
+		};
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			keepTypePrefix: true,
+			capitalize: true,
+		};
+		const result = formatCommitMessage(commit, options);
+		expect(result).toBe('feat: Add new feature');
 	});
 });
 
@@ -288,5 +321,116 @@ describe('formatChangelogSections', () => {
 
 		const result = formatChangelogSections(grouped, defaultOptions);
 		expect(result.some((line) => line.includes('chore'))).toBe(false);
+	});
+
+	it('should append commit link when commitLinks and resolvedCommitUrlTemplate are set', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const fixGroup = new Map<string, ParsedCommit[]>();
+		fixGroup.set('', [
+			{
+				hash: 'abc123def456',
+				message: 'fix: resolve bug',
+				author: 'test',
+				date: '2024-01-01',
+				type: 'fix',
+				subject: 'resolve bug',
+			},
+		]);
+		grouped.set('fix', fixGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			commitLinks: true,
+			resolvedCommitUrlTemplate: 'https://example.com/commit/{{hash}}',
+		};
+		const result = formatChangelogSections(grouped, options);
+		const bulletLine = result.find((line) => line.startsWith('- ') && line.includes('resolve bug'));
+		expect(bulletLine).toBeDefined();
+		expect(bulletLine).toContain('([abc123d](https://example.com/commit/abc123def456))');
+	});
+
+	it('should not append commit link when commitUrlTemplate is empty', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const fixGroup = new Map<string, ParsedCommit[]>();
+		fixGroup.set('', [
+			{
+				hash: 'abc123',
+				message: 'fix: resolve bug',
+				author: 'test',
+				date: '2024-01-01',
+				type: 'fix',
+				subject: 'resolve bug',
+			},
+		]);
+		grouped.set('fix', fixGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			commitLinks: true,
+			resolvedCommitUrlTemplate: '',
+		};
+		const result = formatChangelogSections(grouped, options);
+		const bulletLine = result.find((line) => line.startsWith('- ') && line.includes('resolve bug'));
+		expect(bulletLine).toBe('- resolve bug');
+	});
+
+	it('should emit sections in typeOrder when set (feat before fix)', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const fixGroup = new Map<string, ParsedCommit[]>();
+		fixGroup.set('', [
+			{ hash: 'f1', message: 'fix: bug fix', author: 't', date: '2024-01-01', type: 'fix', subject: 'bug fix' },
+		]);
+		grouped.set('fix', fixGroup);
+		const featGroup = new Map<string, ParsedCommit[]>();
+		featGroup.set('', [
+			{ hash: 'a1', message: 'feat: new feature', author: 't', date: '2024-01-01', type: 'feat', subject: 'new feature' },
+		]);
+		grouped.set('feat', featGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			typeOrder: ['feat', 'fix'],
+		};
+		const result = formatChangelogSections(grouped, options);
+		const featuresIndex = result.findIndex((line) => line.includes('Features'));
+		const bugFixesIndex = result.findIndex((line) => line.includes('Bug Fixes'));
+		expect(featuresIndex).toBeGreaterThan(-1);
+		expect(bugFixesIndex).toBeGreaterThan(-1);
+		expect(featuresIndex).toBeLessThan(bugFixesIndex);
+	});
+
+	it('should emit types not in typeOrder after ordered types', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const featGroup = new Map<string, ParsedCommit[]>();
+		featGroup.set('', [
+			{ hash: 'a1', message: 'feat: feature', author: 't', date: '2024-01-01', type: 'feat', subject: 'feature' },
+		]);
+		grouped.set('feat', featGroup);
+		const fixGroup = new Map<string, ParsedCommit[]>();
+		fixGroup.set('', [
+			{ hash: 'f1', message: 'fix: fix', author: 't', date: '2024-01-01', type: 'fix', subject: 'fix' },
+		]);
+		grouped.set('fix', fixGroup);
+		const choreGroup = new Map<string, ParsedCommit[]>();
+		choreGroup.set('', [
+			{ hash: 'c1', message: 'chore: chore', author: 't', date: '2024-01-01', type: 'chore', subject: 'chore' },
+		]);
+		grouped.set('chore', choreGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			types: {
+				feat: { title: 'Features' },
+				fix: { title: 'Bug Fixes' },
+				chore: { title: 'Chore' },
+			},
+			typeOrder: ['feat', 'fix'],
+		};
+		const result = formatChangelogSections(grouped, options);
+		const featuresIndex = result.findIndex((line) => line.includes('Features'));
+		const bugFixesIndex = result.findIndex((line) => line.includes('Bug Fixes'));
+		const choreIndex = result.findIndex((line) => line.includes('Chore'));
+		expect(choreIndex).toBeGreaterThan(bugFixesIndex);
+		expect(featuresIndex).toBeLessThan(bugFixesIndex);
 	});
 });
