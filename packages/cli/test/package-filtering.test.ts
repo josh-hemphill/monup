@@ -179,4 +179,30 @@ describe('package-based commit filtering integration', () => {
 			expect(versionCommits[0]?.breaking).toBe(true);
 		});
 	});
+
+	describe('has last tag path (per-package version filtering)', () => {
+		const packagesWithChangelog: PackageInfo[] = [
+			createPackage('root-pkg', root, root),
+			createPackage('@monup/changelog', `${root}/packages/changelog`, root),
+			createPackage('@monup/cli', `${root}/packages/cli`, root),
+			createPackage('@monup/git', `${root}/packages/git`, root),
+		];
+
+		it('should give only changelog commits to changelog package when single commit touches only changelog', () => {
+			// Simulates getCommits(lastPackageTag, undefined, packages) returning one commit
+			// that changed root files + packages/changelog only → packages: ['@monup/changelog']
+			const commits: ParsedCommit[] = [
+				createCommit('abc123', 'feat', 'changelog formatting', ['@monup/changelog']),
+			];
+
+			const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packagesWithChangelog);
+
+			expect(scopedCommits.get('@monup/changelog')?.length).toBe(1);
+			expect(scopedCommits.get('@monup/changelog')?.[0]?.hash).toBe('abc123');
+
+			expect(scopedCommits.get('@monup/cli')?.length).toBe(0);
+			expect(scopedCommits.get('@monup/git')?.length).toBe(0);
+			expect(unscopedCommits.size).toBe(0);
+		});
+	});
 });

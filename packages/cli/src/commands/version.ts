@@ -106,6 +106,12 @@ export async function handleVersion(
 				const lastPackageTag = await getLastPackageTag(pkg.name);
 				if (typeof lastPackageTag === 'string') {
 					commitsList = await getCommits(lastPackageTag, undefined, packages);
+					const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commitsList, packages);
+					const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+					const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+					commitsList = isRootPackage
+						? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+						: scopedPackageCommits;
 				}
 				else {
 					// No previous tag for this package, filter commits by package
