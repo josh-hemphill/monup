@@ -9,11 +9,11 @@ import { logger } from './logger.ts';
  * @returns Version string or undefined if tag doesn't match format
  */
 export function extractVersionFromScopedTag(tag: string): string | undefined {
-	const match = tag.match(/^[^@]+@(.+)$/);
-	if (match !== null && match.length > 1 && typeof match[1] === 'string') {
-		return match[1];
+	const separatorIndex = tag.lastIndexOf('@');
+	if (separatorIndex <= 0 || separatorIndex >= tag.length - 1) {
+		return undefined;
 	}
-	return undefined;
+	return tag.slice(separatorIndex + 1);
 }
 
 /**
@@ -66,12 +66,12 @@ export function extractVersionFromTagByStrategy(
 	if (tagStrategy === 'package') {
 		return extractVersionFromScopedTag(tag);
 	}
-	
+
 	// Global tag strategy
 	if (typeof tagTemplate === 'string') {
 		return extractVersionFromTagWithTemplate(tag, tagTemplate);
 	}
-	
+
 	// Default: remove 'v' prefix
 	return extractVersionFromTag(tag);
 }

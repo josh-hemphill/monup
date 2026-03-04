@@ -148,7 +148,6 @@ export async function refExists(ref: string, root: string = cwd()): Promise<bool
 	}
 }
 
-const scopedTagPattern = regex('^(?<package>[^@]+)@(?<version>.+)$', 'i');
 /**
  * Gets the last tags for multiple packages when using scoped tags (package`@`version format)
  * Uses git's pattern matching with multiple patterns to efficiently retrieve all tags in one call
@@ -191,17 +190,15 @@ export async function getLastPackageTags(
 	// Process tags and find the latest for each package
 	// Tags are already sorted by git, so first occurrence for each package is the latest
 	for (const tag of allTags) {
-		// Extract package name from tag (format: package@version)
-		const match = scopedTagPattern.exec(tag);
-		if (match !== null && match.groups !== undefined && typeof match.groups === 'object' && match.groups !== null) {
-			const groups = match.groups;
-			const tagPackageName = groups.package;
-			if (typeof tagPackageName === 'string') {
-				// Only update if we haven't found a tag for this package yet (since tags are sorted, first is latest)
-				if (packageTagMap.has(tagPackageName) && packageTagMap.get(tagPackageName) === undefined) {
-					packageTagMap.set(tagPackageName, tag);
-				}
-			}
+		// Extract package name from tag using last '@' so scoped names (@scope/pkg) are supported.
+		const separatorIndex = tag.lastIndexOf('@');
+		if (separatorIndex <= 0 || separatorIndex >= tag.length - 1) {
+			continue;
+		}
+		const tagPackageName = tag.slice(0, separatorIndex);
+		// Only update if we haven't found a tag for this package yet (since tags are sorted, first is latest)
+		if (packageTagMap.has(tagPackageName) && packageTagMap.get(tagPackageName) === undefined) {
+			packageTagMap.set(tagPackageName, tag);
 		}
 	}
 
