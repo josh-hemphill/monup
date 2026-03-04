@@ -326,8 +326,11 @@ export async function getCommitsSinceLastTag(
 				continue;
 			}
 
-			const packageCommits = await getCommits(lastPackageTag, undefined, packages, root);
+			const packageCommits = await getCommits(lastPackageTag, undefined, [pkg], root);
 			for (const commit of packageCommits) {
+				if (!Array.isArray(commit.packages) || !commit.packages.includes(pkg.name)) {
+					continue;
+				}
 				if (seenHashes.has(commit.hash)) {
 					continue;
 				}
@@ -361,8 +364,8 @@ export async function getCommitsForPackage(
 		try {
 			const lastPackageTag = await getLastPackageTag(pkg.name, root);
 			if (typeof lastPackageTag === 'string') {
-				const commitsSincePackageTag = await getCommits(lastPackageTag, undefined, packages, root);
-				return selectPackageCommits(commitsSincePackageTag, pkg, packages);
+				const commitsSincePackageTag = await getCommits(lastPackageTag, undefined, [pkg], root);
+				return selectPackageCommits(commitsSincePackageTag, pkg, [pkg]);
 			}
 		}
 		catch (error: unknown) {
