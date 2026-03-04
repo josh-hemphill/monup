@@ -49,7 +49,8 @@ export interface ChangelogOptions {
 	scopeMap?: Record<string, string>;
 	/**
 	 * Custom titles for changelog sections
-	 * @default { breakingChanges: '🚨 Breaking Changes' }
+	 * Supported keys: breakingChanges, unscoped.
+	 * @default { breakingChanges: '🚨 Breaking Changes', unscoped: 'Unscoped' }
 	 */
 	titles?: Record<string, string>;
 	/**
@@ -114,6 +115,7 @@ export const defaultChangelogOptions: Required<ChangelogOptions> = {
 	scopeMap: {},
 	titles: {
 		breakingChanges: '🚨 Breaking Changes',
+		unscoped: 'Unscoped',
 	},
 	contributors: true,
 	capitalize: true,

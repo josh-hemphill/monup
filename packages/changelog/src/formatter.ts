@@ -162,10 +162,14 @@ export function formatChangelogSections(
 
 		// Group by scope if enabled
 		if (options.group) {
+			const unscopedTitle = options.titles?.unscoped ?? 'Unscoped';
 			for (const [scope, commits] of scopes) {
-				if (scope) {
+				if (scope.length > 0) {
 					const mappedScope = options.scopeMap?.[scope] ?? scope;
 					sections.push(`#### ${mappedScope}\n`);
+				}
+				else {
+					sections.push(`#### ${unscopedTitle}\n`);
 				}
 
 				for (const commit of commits) {
@@ -176,9 +180,7 @@ export function formatChangelogSections(
 					}
 				}
 
-				if (scope) {
-					sections.push('');
-				}
+				sections.push('');
 			}
 		}
 		else {

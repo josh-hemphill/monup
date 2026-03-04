@@ -249,6 +249,94 @@ describe('formatChangelogSections', () => {
 		expect(result.some((line) => line.includes('bug fix'))).toBe(true);
 	});
 
+	it('should render unscoped and scoped subheadings when group is enabled', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const featGroup = new Map<string, ParsedCommit[]>();
+		featGroup.set('', [
+			{
+				hash: 'abc123',
+				message: 'feat: add global feature',
+				author: 'test',
+				date: '2024-01-01',
+				type: 'feat',
+				subject: 'add global feature',
+			},
+		]);
+		featGroup.set('cli', [
+			{
+				hash: 'def456',
+				message: 'feat(cli): add cli feature',
+				author: 'test',
+				date: '2024-01-02',
+				type: 'feat',
+				scope: 'cli',
+				subject: 'add cli feature',
+			},
+		]);
+		grouped.set('feat', featGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			group: true,
+		};
+		const result = formatChangelogSections(grouped, options);
+		expect(result.some((line) => line.includes('### Features'))).toBe(true);
+		expect(result.some((line) => line.includes('#### Unscoped'))).toBe(true);
+		expect(result.some((line) => line.includes('#### cli'))).toBe(true);
+	});
+
+	it('should render unscoped subheading when only unscoped commits exist and group is enabled', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const featGroup = new Map<string, ParsedCommit[]>();
+		featGroup.set('', [
+			{
+				hash: 'abc123',
+				message: 'feat: add global feature',
+				author: 'test',
+				date: '2024-01-01',
+				type: 'feat',
+				subject: 'add global feature',
+			},
+		]);
+		grouped.set('feat', featGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			group: true,
+		};
+		const result = formatChangelogSections(grouped, options);
+		expect(result.some((line) => line.includes('#### Unscoped'))).toBe(true);
+		expect(result.some((line) => line.includes('add global feature'))).toBe(true);
+	});
+
+	it('should use custom unscoped title when configured', () => {
+		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
+		const featGroup = new Map<string, ParsedCommit[]>();
+		featGroup.set('', [
+			{
+				hash: 'abc123',
+				message: 'feat: add global feature',
+				author: 'test',
+				date: '2024-01-01',
+				type: 'feat',
+				subject: 'add global feature',
+			},
+		]);
+		grouped.set('feat', featGroup);
+
+		const options: ChangelogOptions = {
+			...defaultOptions,
+			group: true,
+			titles: {
+				...defaultOptions.titles,
+				unscoped: 'General',
+			},
+		};
+		const result = formatChangelogSections(grouped, options);
+		expect(result.some((line) => line.includes('#### General'))).toBe(true);
+		expect(result.some((line) => line.includes('#### Unscoped'))).toBe(false);
+	});
+
 	it('should prioritize breaking changes', () => {
 		const grouped = new Map<string, Map<string, ParsedCommit[]>>();
 		const featGroup = new Map<string, ParsedCommit[]>();
