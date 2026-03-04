@@ -2,7 +2,7 @@
  * Release command handler
  */
 import type { ResolvedMonupOptions } from '@monup/options';
-import { publish } from '@monup/release';
+import { publishPackages } from '@monup/release';
 import { detectPackages } from '@monup/workspace';
 import { getCachedPackages, setCachedPackages } from '../cache.ts';
 import { logger } from '../logger.ts';
@@ -27,19 +27,15 @@ export async function handleRelease(
 		return;
 	}
 
-	for (const pkg of packages) {
-		// Extract release options with isCI dependency
-		const releaseOptions = {
+	await publishPackages(
+		packages,
+		{
 			...options.release,
 			isCI: options.isCI,
-		};
-
-		if (dryRunOnly) {
-			releaseOptions.dryRun = true;
-		}
-
-		logger.debug('Publishing package', { pkg: pkg.name });
-		logger.trace('Release options', releaseOptions);
-		await publish(pkg, releaseOptions);
-	}
+		},
+		{
+			dryRun: dryRunOnly,
+			isCI: options.isCI,
+		},
+	);
 }

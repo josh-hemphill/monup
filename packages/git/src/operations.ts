@@ -43,7 +43,7 @@ export async function createCommit(
 /**
  * Pushes commits to remote
  */
-export async function pushToRemote(branch?: string, remote = 'origin'): Promise<void> {
+export async function pushToRemote(branch?: string, remote = 'origin', cwd?: string): Promise<void> {
 	logger.debug('Pushing to remote', { branch, remote });
 	const args = ['push', remote];
 
@@ -52,7 +52,7 @@ export async function pushToRemote(branch?: string, remote = 'origin'): Promise<
 		logger.trace('Pushing specific branch', { branch });
 	}
 
-	await spawnGit(args, { stdio: 'inherit' });
+	await spawnGit(args, { cwd, stdio: 'inherit' });
 	logger.debug('Push completed successfully');
 }
 

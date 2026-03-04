@@ -1,12 +1,16 @@
-import type { ParsedCommit } from '@monup/git';
-import { getGitHubRepo } from '@monup/git';
+import type { GitOptions, ParsedCommit } from '@monup/git';
+import { filterCommitsByPackage, getGitHubRepo } from '@monup/git';
+import type { GitHubOptions } from '@monup/github';
+import type { ReleaseOptions } from '@monup/release';
+import type { PackageInfo } from '@monup/workspace';
 import type { ChangelogOptions } from './options.ts';
 /**
  * Changelog generation from conventional commits
  */
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { cwd } from 'node:process';
 import { sortVersionsDescending } from '@monup/utils';
+import { getPreviousVersion } from '@monup/version';
 import { fs } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { formatChangelogSections, groupCommits } from './formatter.ts';
@@ -175,6 +179,106 @@ export async function getLatestVersionFromChangelog(
 			error: error instanceof Error ? error.message : String(error),
 		});
 		return undefined;
+	}
+}
+
+export interface ChangelogRunOptions {
+	changelog: Required<ChangelogOptions>;
+	git: Pick<GitOptions, 'tagStrategy' | 'tagTemplate'>;
+	release?: ReleaseOptions;
+	github?: GitHubOptions;
+	root: string;
+}
+
+/**
+ * Runs changelog generation across root/per-package strategies.
+ */
+export async function runChangelog(
+	options: ChangelogRunOptions,
+	packages: PackageInfo[],
+	commits: ParsedCommit[],
+): Promise<void> {
+	if (options.changelog.strategy === 'root') {
+		let version: string | undefined;
+		try {
+			version = await getLatestVersionFromChangelog(undefined, options.changelog);
+		}
+		catch (error: unknown) {
+			logger.debug('Failed to get version from changelog', {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
+		if (typeof version !== 'string' && packages.length > 0 && typeof packages[0]?.packageFile === 'string') {
+			try {
+				version = await getPreviousVersion(packages[0], {
+					tagStrategy: options.git.tagStrategy,
+					tagTemplate: options.git.tagTemplate,
+					changelog: options.changelog,
+					release: options.release,
+					github: options.github,
+					root: options.root,
+				});
+			}
+			catch (error: unknown) {
+				logger.debug('Failed to get previous version', {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
+		const finalVersion = resolveVersionWithFallback(version, options.changelog, 'root');
+		await generateChangelog(finalVersion, commits, 'root', options.changelog);
+		return;
+	}
+
+	const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
+	for (const pkg of packages) {
+		const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+		const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+		const packageCommits = isRootPackage
+			? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+			: scopedPackageCommits;
+
+		if (packageCommits.length === 0) {
+			logger.info(`No commits for ${pkg.name}, skipping changelog`);
+			continue;
+		}
+
+		const changelogPath = resolve(pkg.path, options.changelog.location);
+		let version: string | undefined;
+		try {
+			version = await getPreviousVersion(pkg, {
+				tagStrategy: options.git.tagStrategy,
+				tagTemplate: options.git.tagTemplate,
+				changelog: options.changelog,
+				release: options.release,
+				github: options.github,
+				changelogPath,
+				root: options.root,
+			});
+		}
+		catch (error: unknown) {
+			logger.debug('Failed to get previous version', {
+				package: pkg.name,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
+		if (typeof version !== 'string') {
+			try {
+				version = await getLatestVersionFromChangelog(pkg.name, options.changelog, changelogPath);
+			}
+			catch (error: unknown) {
+				logger.debug('Failed to get version from changelog', {
+					package: pkg.name,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
+		const finalVersion = resolveVersionWithFallback(version, options.changelog, pkg.name);
+		await generateChangelog(finalVersion, packageCommits, pkg.name, options.changelog, changelogPath);
 	}
 }
 

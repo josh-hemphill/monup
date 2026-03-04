@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@monup/git": "workspace:*",
+    "@monup/version": "workspace:*",
     "loglevel": "catalog:logging"
   },
   "devDependencies": {

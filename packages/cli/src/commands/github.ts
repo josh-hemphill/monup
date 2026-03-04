@@ -2,9 +2,7 @@
  * GitHub command handler
  */
 import type { ResolvedMonupOptions } from '@monup/options';
-import { formatTag } from '@monup/git';
-import { createRelease } from '@monup/github';
-import { getCurrentVersionFromFile } from '@monup/version';
+import { createReleasesForPackages } from '@monup/github';
 import { logger } from '../logger.ts';
 import { getPackagesWithCache } from '../package-utils.ts';
 
@@ -19,34 +17,9 @@ export async function handleGithub(options: ResolvedMonupOptions): Promise<void>
 		return;
 	}
 
-	for (const pkg of packages) {
-		if (typeof pkg.packageFile !== 'string') {
-			continue;
-		}
-
-		const version = await getCurrentVersionFromFile(pkg.packageFile);
-		if (typeof version !== 'string') {
-			logger.warn(`No version found for ${pkg.name}, skipping`);
-			continue;
-		}
-
-		const tagName = options.git.tagStrategy === 'package'
-			? `${pkg.name}@${version}`
-			: formatTag(options.git.tagTemplate, version);
-
-		const changelogPath = options.changelog.strategy === 'per-package'
-			? `${pkg.path}/${options.changelog.location}`
-			: options.changelog.location;
-
-		// Extract GitHub options with changelog dependency
-		const githubOptions = {
-			...options.github,
-			changelog: options.changelog,
-		};
-
-		logger.debug('Creating GitHub release', { version, pkg: pkg.name, tagName });
-		logger.trace('GitHub options', githubOptions);
-		logger.trace('Git options', options.git);
-		await createRelease(version, pkg.name, tagName, githubOptions, options.git, changelogPath, packages);
-	}
+	await createReleasesForPackages(packages, {
+		github: options.github,
+		git: options.git,
+		changelog: options.changelog,
+	});
 }

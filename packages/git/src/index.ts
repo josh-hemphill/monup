@@ -1,4 +1,4 @@
-import type { PackageInfo } from './filter.ts';
+import { filterCommitsByPackage, type PackageInfo } from './filter.ts';
 import type { ParsedCommit } from './parser.ts';
 /**
  * Git operations via zx shell processes
@@ -29,6 +29,15 @@ export {
 } from './tag-utils.ts';
 
 export const _VERSION: string = packageJson.version;
+
+/**
+ * Shared git workflow options used by higher-level package orchestration.
+ */
+export interface GitWorkflowOptions {
+	tagStrategy?: 'package' | 'global';
+	tagTemplate?: string;
+	tagFilter?: (tag: string) => boolean;
+}
 /**
  * Gets git commits in a range
  * Returns structured commit data with package information
@@ -279,6 +288,94 @@ export async function getLastTag(
 
 	logger.debug('No tags found');
 	return undefined;
+}
+
+function selectPackageCommits(
+	commits: ParsedCommit[],
+	pkg: PackageInfo,
+	packagesForFilter: PackageInfo[],
+): ParsedCommit[] {
+	const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packagesForFilter);
+	const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+	const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+	return isRootPackage
+		? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+		: scopedPackageCommits;
+}
+
+/**
+ * Gets commits since last tag based on strategy.
+ * Package strategy merges commits from each package's last tag.
+ */
+export async function getCommitsSinceLastTag(
+	options: GitWorkflowOptions,
+	packages: PackageInfo[],
+	root: string = cwd(),
+): Promise<ParsedCommit[]> {
+	const tagStrategy = options.tagStrategy ?? 'global';
+
+	if (tagStrategy === 'package') {
+		const packageNames = packages.map((pkg) => pkg.name);
+		const packageTagMap = await getLastPackageTags(packageNames, root);
+		const seenHashes = new Set<string>();
+		const allCommits: ParsedCommit[] = [];
+
+		for (const pkg of packages) {
+			const lastPackageTag = packageTagMap.get(pkg.name);
+			if (typeof lastPackageTag !== 'string') {
+				continue;
+			}
+
+			const packageCommits = await getCommits(lastPackageTag, undefined, packages, root);
+			for (const commit of packageCommits) {
+				if (seenHashes.has(commit.hash)) {
+					continue;
+				}
+				seenHashes.add(commit.hash);
+				allCommits.push(commit);
+			}
+		}
+
+		if (allCommits.length > 0) {
+			return allCommits;
+		}
+	}
+
+	const lastTag = await getLastTag(undefined, options.tagTemplate, options.tagFilter, root);
+	return getCommits(lastTag, undefined, packages, root);
+}
+
+/**
+ * Gets commits relevant to a single package for version/changelog workflows.
+ */
+export async function getCommitsForPackage(
+	pkg: PackageInfo,
+	packages: PackageInfo[],
+	allCommits: ParsedCommit[],
+	options: GitWorkflowOptions,
+	root: string = cwd(),
+): Promise<ParsedCommit[]> {
+	const tagStrategy = options.tagStrategy ?? 'global';
+
+	if (tagStrategy === 'package') {
+		try {
+			const lastPackageTag = await getLastPackageTag(pkg.name, root);
+			if (typeof lastPackageTag === 'string') {
+				const commitsSincePackageTag = await getCommits(lastPackageTag, undefined, packages, root);
+				return selectPackageCommits(commitsSincePackageTag, pkg, packages);
+			}
+		}
+		catch (error: unknown) {
+			logger.debug('Failed to get commits for package from last tag', {
+				package: pkg.name,
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
+		return selectPackageCommits(allCommits, pkg, [pkg]);
+	}
+
+	return selectPackageCommits(allCommits, pkg, packages);
 }
 
 /**

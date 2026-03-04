@@ -1,15 +1,20 @@
 import type { ChangelogOptions } from '@monup/changelog';
-import type { ParsedCommit } from '@monup/git';
+import type { GitOptions, ParsedCommit } from '@monup/git';
 import type { GitHubOptions } from '@monup/github';
 import type { ReleaseOptions } from '@monup/release';
 import type { PackageInfo } from '@monup/workspace';
 import type { CommitTypeMapping } from './calculator.ts';
 import { getLatestVersionFromChangelog } from '@monup/changelog';
 import {
+	createCommit,
+	createTag,
 	extractVersionFromScopedTag,
 	extractVersionFromTagByStrategy,
+	formatTag,
+	getCommitsForPackage,
 	getLastPackageTag,
 	getLastTag,
+	pushToRemote,
 } from '@monup/git';
 import { defaultGitHubOptions, listReleases } from '@monup/github';
 import { listPublishedVersions, resolveReleaseOptions } from '@monup/release';
@@ -124,6 +129,27 @@ export interface PreviousVersionOptions {
 	 * Changelog file path (optional, will be resolved from options if not provided)
 	 */
 	changelogPath?: string;
+	/**
+	 * Root directory for git operations
+	 */
+	root?: string;
+}
+
+/**
+ * Options for the version bump workflow.
+ */
+export interface VersionBumpOptions {
+	version: Required<import('./options.ts').VersionOptions>;
+	git: Required<Omit<GitOptions, 'tagFilter' | 'from' | 'to'>> & Pick<GitOptions, 'tagFilter' | 'from' | 'to'>;
+}
+
+/**
+ * Context values used during version bumping.
+ */
+export interface VersionBumpContext {
+	workspaceRoot: string;
+	commits: ParsedCommit[];
+	bumpType?: 'major' | 'minor' | 'patch';
 }
 
 /**
@@ -150,8 +176,9 @@ export async function getPreviousVersion(
 
 	// 2. Try git tags (scoped if tagStrategy is 'package', global otherwise)
 	const tagStrategy = options.tagStrategy ?? 'global';
+	const root = typeof options.root === 'string' ? options.root : undefined;
 	if (tagStrategy === 'package') {
-		const lastTag = await getLastPackageTag(pkg.name);
+		const lastTag = await getLastPackageTag(pkg.name, root);
 		if (typeof lastTag === 'string') {
 			const version = extractVersionFromScopedTag(lastTag);
 			if (typeof version === 'string') {
@@ -162,7 +189,7 @@ export async function getPreviousVersion(
 	}
 	else {
 		const tagTemplate = options.tagTemplate;
-		const lastTag = await getLastTag(undefined, tagTemplate);
+		const lastTag = await getLastTag(undefined, tagTemplate, undefined, root);
 		if (typeof lastTag === 'string') {
 			const version = extractVersionFromTagByStrategy(lastTag, tagStrategy, tagTemplate);
 			if (typeof version === 'string') {
@@ -244,6 +271,76 @@ export async function getPreviousVersion(
 
 	logger.debug('No previous version found', { package: pkg.name });
 	return undefined;
+}
+
+/**
+ * Runs version bumping across packages using package-specific commit selection.
+ */
+export async function runVersionBump(
+	options: VersionBumpOptions,
+	packages: PackageInfo[],
+	context: VersionBumpContext,
+): Promise<void> {
+	for (const pkg of packages) {
+		if (typeof pkg.packageFile !== 'string') {
+			continue;
+		}
+
+		const commitsList = await getCommitsForPackage(
+			pkg,
+			packages,
+			context.commits,
+			options.git,
+			context.workspaceRoot,
+		);
+		const currentVersion = await getCurrentVersionFromFile(pkg.packageFile);
+		if (typeof currentVersion !== 'string') {
+			continue;
+		}
+
+		const calculated = calculateVersion(currentVersion, commitsList);
+		const nextVersion = typeof context.bumpType === 'string'
+			? calculateNextVersion(currentVersion, context.bumpType)
+			: calculated.nextVersion;
+		const finalVersion = typeof nextVersion === 'string' ? nextVersion : currentVersion;
+
+		if (finalVersion === currentVersion && typeof context.bumpType === 'undefined') {
+			continue;
+		}
+
+		const pkgWithManifests = pkg as typeof pkg & { packageFiles?: string[] };
+		const manifestFiles: string[] = pkgWithManifests.packageFiles ?? [pkg.packageFile];
+		for (const file of manifestFiles) {
+			await updateVersionInFile(file, finalVersion);
+		}
+
+		if (options.version.files.length > 0) {
+			await updateVersionInAdditionalFiles(options.version.files, currentVersion, finalVersion);
+		}
+
+		if (options.git.commit) {
+			const commitFiles: string[] = [...manifestFiles, ...options.version.files];
+			const tagName = options.git.tagStrategy === 'package'
+				? `${pkg.name}@${finalVersion}`
+				: formatTag(options.git.tagTemplate, finalVersion);
+
+			await createCommit(
+				`chore: bump ${pkg.name} to ${finalVersion}`,
+				commitFiles,
+				options.git.sign,
+				options.git.noVerify,
+				context.workspaceRoot,
+			);
+
+			if (options.git.tag) {
+				await createTag(tagName, `Release ${pkg.name} ${finalVersion}`, options.git.sign, context.workspaceRoot);
+			}
+		}
+	}
+
+	if (options.git.push) {
+		await pushToRemote(undefined, 'origin', context.workspaceRoot);
+	}
 }
 
 export { defaultVersionOptions } from './options.ts';
