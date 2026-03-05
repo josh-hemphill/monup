@@ -7,7 +7,7 @@ export interface JsrJson {
 	version?: string;
 	[key: string]: unknown;
 }
-export const JSR_JSON_FILES = ['jsr.json', 'jsr.jsonc'];
+export const JSR_JSON_FILES = ['jsr.json', 'jsr.jsonc'] as const;
 export async function getJsrJson(packagePath: string, root: string): Promise<PackageInfo | undefined> {
 	for (const jsrJsonFile of JSR_JSON_FILES) {
 		const jsrJsonPath = path.resolve(packagePath, jsrJsonFile);
