@@ -1,7 +1,7 @@
 {
 	"deno.enable": false,
 	"editor.linkedEditing": true,
-	"editor.formatOnSave": true,
+	"editor.formatOnSave": false,
 	"files.associations": {
 		".all-contributorsrc": "jsonc"
 	},
@@ -84,6 +84,7 @@
 		"json",
 		"jsonc",
 		"yaml",
+		"yml",
 		"toml",
 		"xml"
 	],
