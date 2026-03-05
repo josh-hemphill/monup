@@ -10,7 +10,7 @@ import { access, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { normalizePathForComparison, parseJson, parseJsonc } from '@monup/utils';
 import { detect } from 'package-manager-detector';
-import { glob, path, which } from 'zx';
+import { glob, which } from 'zx';
 import { logger } from './logger.ts';
 import { resolveAgent } from './pmd-internals.ts';
 import { spawnCommand } from './spawn.ts';
