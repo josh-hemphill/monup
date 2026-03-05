@@ -6,7 +6,7 @@ import type { PackageInfo } from '@monup/workspace';
 import type { AgentName } from 'package-manager-detector';
 import type { MockedFunction } from 'vitest';
 import type { ReleaseOptions } from '../src/options.ts';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as pmd from 'package-manager-detector';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +16,12 @@ import { resolveReleaseOptions } from '../src/options.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = join(__dirname, 'fixtures');
+
+/** Returns path in the given style so we test both Windows and Unix path handling. */
+function pathInStyle(absolutePath: string, style: 'native' | 'unix'): string {
+	const resolved = resolve(absolutePath);
+	return style === 'unix' ? resolved.split(sep).join('/') : resolved;
+}
 
 // Mock zx's which function
 vi.mock('zx', async() => {
@@ -173,49 +179,51 @@ describe('detector', () => {
 			expect(result.publishType).toBe('npm');
 		});
 
-		it('should detect npm workspace with packageManager field', async() => {
-			const workspaceRoot = join(fixturesDir, 'npm-workspace-yarn');
-			const pkg: PackageInfo = {
-				name: 'pkg1',
-				path: join(workspaceRoot, 'packages', 'pkg1'),
-				root: workspaceRoot,
-				packageFile: join(workspaceRoot, 'packages', 'pkg1', 'package.json'),
-			};
+		it.each(['native', 'unix'] as const)(
+			'should detect npm workspace with packageManager field (paths: %s)',
+			async(pathStyle) => {
+				const base = join(fixturesDir, 'npm-workspace-yarn');
+				const workspaceRoot = pathInStyle(base, pathStyle);
+				const pkg: PackageInfo = {
+					name: 'pkg1',
+					path: pathInStyle(join(base, 'packages', 'pkg1'), pathStyle),
+					root: workspaceRoot,
+					packageFile: pathInStyle(join(base, 'packages', 'pkg1', 'package.json'), pathStyle),
+				};
 
-			// Restrict to workspace context only so test passes in CI (where pnpm is available)
-			const options: ReleaseOptions = {
-				detectionOrder: ['checkExplicitOverride', 'checkWorkspaceContext'],
-			};
+				const options: ReleaseOptions = {};
 
-			const result = await detectPackageManager(pkg, resolveReleaseOptions(options));
+				const result = await detectPackageManager(pkg, resolveReleaseOptions(options));
 
-			expect(result.command.name).toBe('yarn');
-			expect(result.command.agent).toBe('yarn');
-			expect(result.command.version).toBeUndefined();
-			expect(result.publishType).toBe('npm');
-		});
+				expect(result.command.name).toBe('yarn');
+				expect(result.command.agent).toBe('yarn');
+				expect(result.command.version).toBeUndefined();
+				expect(result.publishType).toBe('npm');
+			},
+		);
 
-		it('should detect deno workspace', async() => {
-			const workspaceRoot = join(fixturesDir, 'deno-workspace');
-			const pkg: PackageInfo = {
-				name: 'pkg1',
-				path: join(workspaceRoot, 'packages', 'pkg1'),
-				root: workspaceRoot,
-				packageFile: join(workspaceRoot, 'packages', 'pkg1', 'jsr.json'),
-			};
+		it.each(['native', 'unix'] as const)(
+			'should detect deno workspace (paths: %s)',
+			async(pathStyle) => {
+				const base = join(fixturesDir, 'deno-workspace');
+				const workspaceRoot = pathInStyle(base, pathStyle);
+				const pkg: PackageInfo = {
+					name: 'pkg1',
+					path: pathInStyle(join(base, 'packages', 'pkg1'), pathStyle),
+					root: workspaceRoot,
+					packageFile: pathInStyle(join(base, 'packages', 'pkg1', 'jsr.json'), pathStyle),
+				};
 
-			// Restrict to workspace context only so test passes in CI (where pnpm is available)
-			const options: ReleaseOptions = {
-				detectionOrder: ['checkExplicitOverride', 'checkWorkspaceContext'],
-			};
+				const options: ReleaseOptions = {};
 
-			const result = await detectPackageManager(pkg, resolveReleaseOptions(options));
+				const result = await detectPackageManager(pkg, resolveReleaseOptions(options));
 
-			expect(result.command.name).toBe('deno');
-			expect(result.command.agent).toBe('deno');
-			expect(result.command.version).toBeUndefined();
-			expect(result.publishType).toBe('jsr');
-		});
+				expect(result.command.name).toBe('deno');
+				expect(result.command.agent).toBe('deno');
+				expect(result.command.version).toBeUndefined();
+				expect(result.publishType).toBe('jsr');
+			},
+		);
 
 		it('should resolve conflicts using commandPriority', async() => {
 			const workspaceRoot = join(fixturesDir, 'conflict-workspace');

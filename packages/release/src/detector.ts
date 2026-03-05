@@ -93,7 +93,9 @@ async function isPackageInWorkspace(
 ): Promise<boolean> {
 	const normPackagePath = normalizePathForComparison(path.posix.join(...packagePath.split(path.sep))).replace(/\/$/, '');
 	try {
-		const matches = await glob(pattern, { cwd: workspaceRoot, onlyDirectories: true, absolute: true });
+		// Use normalized cwd so glob behaves consistently on Windows and Unix (CI)
+		const cwdForGlob = normalizePathForComparison(workspaceRoot);
+		const matches = await glob(pattern, { cwd: cwdForGlob, onlyDirectories: true, absolute: true });
 		return matches.some((match) => {
 			const normMatch = normalizePathForComparison(match).replace(/\/$/, '');
 			return normPackagePath === normMatch || normPackagePath.startsWith(`${normMatch}/`);
