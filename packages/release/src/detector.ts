@@ -6,10 +6,11 @@
 import type { PackageInfo } from '@monup/workspace';
 import type { AgentName, DetectResult } from 'package-manager-detector';
 import type { ResolvedReleaseOptions } from './options.ts';
+import { access, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { normalizePathForComparison, parseJson, parseJsonc } from '@monup/utils';
 import { detect } from 'package-manager-detector';
-import { fs, glob, path, which } from 'zx';
+import { glob, path, which } from 'zx';
 import { logger } from './logger.ts';
 import { resolveAgent } from './pmd-internals.ts';
 import { spawnCommand } from './spawn.ts';
@@ -93,13 +94,23 @@ async function isPackageInWorkspace(
 ): Promise<boolean> {
 	const normPackagePath = normalizePathForComparison(path.posix.join(...packagePath.split(path.sep))).replace(/\/$/, '');
 	try {
-		// Use normalized cwd so glob behaves consistently on Windows and Unix (CI)
-		const cwdForGlob = normalizePathForComparison(workspaceRoot);
-		const matches = await glob(pattern, { cwd: cwdForGlob, onlyDirectories: true, absolute: true });
+		// Use native workspaceRoot for glob cwd so behavior is correct on both Windows and Unix
+		const matches = await glob(pattern, { cwd: workspaceRoot, onlyDirectories: true, absolute: true });
 		return matches.some((match) => {
 			const normMatch = normalizePathForComparison(match).replace(/\/$/, '');
 			return normPackagePath === normMatch || normPackagePath.startsWith(`${normMatch}/`);
 		});
+	}
+	catch {
+		return false;
+	}
+}
+
+/** Node fs exists check so workspace detection is consistent across environments. */
+async function pathExists(filePath: string): Promise<boolean> {
+	try {
+		await access(filePath);
+		return true;
 	}
 	catch {
 		return false;
@@ -130,9 +141,9 @@ async function analyzeWorkspace(
 
 	// Check for pnpm-workspace.yaml
 	const pnpmWorkspaceFile = resolve(workspaceRoot, 'pnpm-workspace.yaml');
-	if (await fs.exists(pnpmWorkspaceFile)) {
+	if (await pathExists(pnpmWorkspaceFile)) {
 		try {
-			const content = await fs.readFile(pnpmWorkspaceFile, 'utf-8');
+			const content = await readFile(pnpmWorkspaceFile, 'utf-8');
 			const lines = content.split('\n');
 			let inPackages = false;
 			const patterns: string[] = [];
@@ -167,9 +178,9 @@ async function analyzeWorkspace(
 
 	// Check for package.json with workspaces field
 	const packageJsonPath = resolve(workspaceRoot, 'package.json');
-	if (await fs.exists(packageJsonPath)) {
+	if (await pathExists(packageJsonPath)) {
 		try {
-			const content = await fs.readFile(packageJsonPath, 'utf-8');
+			const content = await readFile(packageJsonPath, 'utf-8');
 			const pkg = parseJson<{
 				workspaces?: string[] | { packages?: string[] };
 				packageManager?: string;
@@ -207,9 +218,9 @@ async function analyzeWorkspace(
 
 	// Check for deno.json with workspace field
 	const denoJsonPath = resolve(workspaceRoot, 'deno.json');
-	if (await fs.exists(denoJsonPath)) {
+	if (await pathExists(denoJsonPath)) {
 		try {
-			const content = await fs.readFile(denoJsonPath, 'utf-8');
+			const content = await readFile(denoJsonPath, 'utf-8');
 			const config = parseJsonc<{
 				workspace?: string[] | { packages?: string[] };
 				[key: string]: unknown;
@@ -338,7 +349,7 @@ async function checkJsrDenoPreference(
 	}
 
 	const denoJsonPath = join(ctx.pkg.path, 'deno.json');
-	if (await fs.exists(denoJsonPath)) {
+	if (await pathExists(denoJsonPath)) {
 		const deno = await getCommandAvailability('deno', ctx.excludedCommands);
 		if (typeof deno === 'string') {
 			const version = await getCommandRunVersion(deno);
