@@ -3,7 +3,7 @@
  */
 import packageJson from '../jsr.json' with { type: 'json' };
 
-export { detectCI } from './ci.ts';
+export { CI_VARS, detectCI } from './ci.ts';
 export { getErrorMessage } from './error-utils.ts';
 export { parseJson, parseJsonc, stripJsoncComments } from './jsonc.ts';
 export { applyLogFormatter } from './log-formatter.ts';

@@ -1,16 +1,14 @@
 import { env } from 'node:process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { detectCI } from '../src/ci.ts';
+import { CI_VARS, detectCI } from '../src/ci.ts';
 
 describe('detectCI', () => {
 	const originalEnv = { ...env };
 
 	beforeEach(() => {
-		// Clear CI-related env vars
-		for (const key in env) {
-			if (key.startsWith('CI') || key.includes('CI') || key.includes('BUILD')) {
-				delete env[key];
-			}
+		// Clear exactly the CI vars that detectCI checks (so test works in CI)
+		for (const key of CI_VARS) {
+			delete env[key as keyof NodeJS.ProcessEnv];
 		}
 	});
 

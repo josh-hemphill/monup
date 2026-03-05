@@ -18,52 +18,32 @@ inputs:
     description: Run pnpm install after setup
     required: false
     default: 'true'
-  frozen-lockfile:
-    description: Use --frozen-lockfile when installing
-    required: false
-    default: 'true'
 
 runs:
   using: composite
   steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+        cache: true
+
     - name: Setup Node.js
       if: ${{ inputs.registry-url == '' }}
       uses: actions/setup-node@v6
       with:
+        cache: pnpm
         node-version: ${{ inputs.node-version }}
 
     - name: Setup Node.js with registry
       if: ${{ inputs.registry-url != '' }}
       uses: actions/setup-node@v6
       with:
+        cache: pnpm
         node-version: ${{ inputs.node-version }}
         registry-url: ${{ inputs.registry-url }}
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: ${{ inputs.pnpm-version }}
-
-    - name: Get pnpm store directory
-      id: pnpm-cache
-      shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
-
-    - name: Setup pnpm cache
-      uses: actions/cache@v5
-      with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
-
-    - name: Install dependencies (frozen lockfile)
-      if: ${{ inputs.install == 'true' && inputs.frozen-lockfile == 'true' }}
-      shell: bash
-      run: pnpm install --frozen-lockfile
-
     - name: Install dependencies
-      if: ${{ inputs.install == 'true' && inputs.frozen-lockfile != 'true' }}
+      if: ${{ inputs.install == 'true' }}
       shell: bash
       run: pnpm install

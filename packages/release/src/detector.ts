@@ -91,11 +91,11 @@ async function isPackageInWorkspace(
 	workspaceRoot: string,
 	pattern: string,
 ): Promise<boolean> {
-	const normPackagePath = normalizePathForComparison(path.posix.join(...packagePath.split(path.sep)));
+	const normPackagePath = normalizePathForComparison(path.posix.join(...packagePath.split(path.sep))).replace(/\/$/, '');
 	try {
 		const matches = await glob(pattern, { cwd: workspaceRoot, onlyDirectories: true, absolute: true });
 		return matches.some((match) => {
-			const normMatch = normalizePathForComparison(match);
+			const normMatch = normalizePathForComparison(match).replace(/\/$/, '');
 			return normPackagePath === normMatch || normPackagePath.startsWith(`${normMatch}/`);
 		});
 	}
@@ -122,6 +122,8 @@ async function analyzeWorkspace(
 	packagePath: string,
 	commandPriority: string[],
 ): Promise<AgentName | undefined> {
+	workspaceRoot = resolve(workspaceRoot);
+	packagePath = resolve(packagePath);
 	const detections: WorkspaceDetection[] = [];
 
 	// Check for pnpm-workspace.yaml

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, type TestUserConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
@@ -10,4 +10,4 @@ export default defineConfig({
 		include: ['**/*.test.ts'],
 		exclude: ['node_modules', 'dist'],
 	},
-});
+}) as TestUserConfig;

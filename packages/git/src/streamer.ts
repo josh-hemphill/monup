@@ -1,6 +1,6 @@
 import type { PackageInfo } from './filter.ts';
 import type { ParsedCommit } from './parser.ts';
-import { relative } from 'node:path';
+import { posix } from 'node:path';
 import { cwd } from 'node:process';
 /**
  * Streaming git log parser that maps files to packages
@@ -49,10 +49,13 @@ function mapFileToPackage(filePath: string, packages: PackageInfo[], root: strin
 	const normalizedPath = normalizePathForComparison(filePath.startsWith('./') ? filePath.slice(2) : filePath);
 
 	// Find packages that match this file path
-	// Compare using relative paths from root
+	// Compare using relative paths from root (normalize so Windows paths work on Linux CI)
+	const normRoot = normalizePathForComparison(root);
 	const matchingPackages = packages
 		.filter((pkg) => {
-			const packageRelativePath = normalizePathForComparison(relative(root, pkg.path));
+			const packageRelativePath = normalizePathForComparison(
+				posix.relative(normRoot, normalizePathForComparison(pkg.path)),
+			);
 
 			// Check if file path starts with package path
 			return normalizedPath.startsWith(`${packageRelativePath}/`)

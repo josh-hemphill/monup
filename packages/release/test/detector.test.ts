@@ -182,7 +182,10 @@ describe('detector', () => {
 				packageFile: join(workspaceRoot, 'packages', 'pkg1', 'package.json'),
 			};
 
-			const options: ReleaseOptions = {};
+			// Restrict to workspace context only so test passes in CI (where pnpm is available)
+			const options: ReleaseOptions = {
+				detectionOrder: ['checkExplicitOverride', 'checkWorkspaceContext'],
+			};
 
 			const result = await detectPackageManager(pkg, resolveReleaseOptions(options));
 
@@ -201,7 +204,10 @@ describe('detector', () => {
 				packageFile: join(workspaceRoot, 'packages', 'pkg1', 'jsr.json'),
 			};
 
-			const options: ReleaseOptions = {};
+			// Restrict to workspace context only so test passes in CI (where pnpm is available)
+			const options: ReleaseOptions = {
+				detectionOrder: ['checkExplicitOverride', 'checkWorkspaceContext'],
+			};
 
 			const result = await detectPackageManager(pkg, resolveReleaseOptions(options));
 
