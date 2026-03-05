@@ -1,4 +1,5 @@
-import { defineConfig, type TestUserConfig } from 'vitest/config';
+import type { TestUserConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
