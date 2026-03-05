@@ -16,7 +16,7 @@ const npmAndJsrDir = join(fixturesDir, 'npm-and-jsr');
 
 describe('workspace package - core functionality', () => {
 	describe('detectPackages', () => {
-		it('should detect packages in pnpm workspace', async () => {
+		it('should detect packages in pnpm workspace', async() => {
 			const packages = await detectPackages(pnpmWorkspaceDir);
 			expect(Array.isArray(packages)).toBe(true);
 			expect(packages.length).toBeGreaterThanOrEqual(0);
@@ -33,7 +33,7 @@ describe('workspace package - core functionality', () => {
 			}
 		});
 
-		it('should detect packages in npm workspace', async () => {
+		it('should detect packages in npm workspace', async() => {
 			const packages = await detectPackages(npmWorkspaceDir);
 			expect(Array.isArray(packages)).toBe(true);
 			expect(packages.length).toBeGreaterThanOrEqual(0);
@@ -45,7 +45,7 @@ describe('workspace package - core functionality', () => {
 			});
 		});
 
-		it('should detect packages in deno workspace', async () => {
+		it('should detect packages in deno workspace', async() => {
 			const packages = await detectPackages(denoWorkspaceDir);
 			expect(Array.isArray(packages)).toBe(true);
 			expect(packages.length).toBeGreaterThanOrEqual(0);
@@ -62,7 +62,7 @@ describe('workspace package - core functionality', () => {
 			}
 		});
 
-		it('should detect root as single package when no workspace detected', async () => {
+		it('should detect root as single package when no workspace detected', async() => {
 			const packages = await detectPackages(singlePackageDir);
 			expect(Array.isArray(packages)).toBe(true);
 			expect(packages.length).toBe(1);
@@ -71,7 +71,7 @@ describe('workspace package - core functionality', () => {
 			expect(packages[0]?.root).toBe(singlePackageDir);
 		});
 
-		it('should merge package.json and jsr.json in same directory into one logical package', async () => {
+		it('should merge package.json and jsr.json in same directory into one logical package', async() => {
 			const packages = await detectPackages(npmAndJsrDir);
 			expect(Array.isArray(packages)).toBe(true);
 			expect(packages.length).toBe(1);
@@ -86,7 +86,7 @@ describe('workspace package - core functionality', () => {
 	});
 
 	describe('getPackageInfo', () => {
-		it('should get package info by name from fixtures', async () => {
+		it('should get package info by name from fixtures', async() => {
 			const packages = await detectPackages(singlePackageDir);
 			expect(packages.length).toBeGreaterThan(0);
 			const firstPackage = packages[0];
@@ -97,7 +97,7 @@ describe('workspace package - core functionality', () => {
 			expect(packageInfo?.path).toBe(firstPackage.path);
 		});
 
-		it('should handle non-existent package name', async () => {
+		it('should handle non-existent package name', async() => {
 			const packageInfo = await getPackageInfo('non-existent-package-12345', pnpmWorkspaceDir);
 			expect(packageInfo).toBeUndefined();
 		});
@@ -105,12 +105,12 @@ describe('workspace package - core functionality', () => {
 		describe('with temporary directories', () => {
 			let testDir: string;
 
-			beforeEach(async () => {
+			beforeEach(async() => {
 				testDir = join(tmpdir(), `monup-workspace-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 				await mkdir(testDir, { recursive: true });
 			});
 
-			afterEach(async () => {
+			afterEach(async() => {
 				try {
 					await rm(testDir, { recursive: true, force: true });
 				}
@@ -119,7 +119,7 @@ describe('workspace package - core functionality', () => {
 				}
 			});
 
-			it('should find package by name in single package repo', async () => {
+			it('should find package by name in single package repo', async() => {
 				const packageJsonPath = join(testDir, 'package.json');
 				await writeFile(packageJsonPath, JSON.stringify({
 					name: 'test-package',
@@ -133,7 +133,7 @@ describe('workspace package - core functionality', () => {
 				expect(packageInfo?.path).toBe(testDir);
 			});
 
-			it('should return undefined for non-existent package', async () => {
+			it('should return undefined for non-existent package', async() => {
 				const packageJsonPath = join(testDir, 'package.json');
 				await writeFile(packageJsonPath, JSON.stringify({
 					name: 'test-package',
@@ -145,7 +145,7 @@ describe('workspace package - core functionality', () => {
 				expect(packageInfo).toBeUndefined();
 			});
 
-			it('should find package with root name when name is missing', async () => {
+			it('should find package with root name when name is missing', async() => {
 				const packageJsonPath = join(testDir, 'package.json');
 				await writeFile(packageJsonPath, JSON.stringify({
 					version: '1.0.0',
@@ -162,12 +162,12 @@ describe('workspace package - core functionality', () => {
 	describe('updatePackageVersions', () => {
 		let testDir: string;
 
-		beforeEach(async () => {
+		beforeEach(async() => {
 			testDir = join(tmpdir(), `monup-workspace-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 			await mkdir(testDir, { recursive: true });
 		});
 
-		afterEach(async () => {
+		afterEach(async() => {
 			try {
 				await rm(testDir, { recursive: true, force: true });
 			}
@@ -176,7 +176,7 @@ describe('workspace package - core functionality', () => {
 			}
 		});
 
-		it('should update versions for multiple packages', async () => {
+		it('should update versions for multiple packages', async() => {
 			// Create two packages
 			const pkg1Path = join(testDir, 'package1');
 			const pkg2Path = join(testDir, 'package2');
@@ -228,7 +228,7 @@ describe('workspace package - core functionality', () => {
 			expect(pkg2Parsed.version).toBe('2.1.0');
 		});
 
-		it('should skip packages not in version map', async () => {
+		it('should skip packages not in version map', async() => {
 			const pkg1Path = join(testDir, 'package1');
 			await mkdir(pkg1Path, { recursive: true });
 
@@ -259,7 +259,7 @@ describe('workspace package - core functionality', () => {
 			expect(pkg1Parsed.version).toBe('1.0.0');
 		});
 
-		it('should skip packages without packageFile', async () => {
+		it('should skip packages without packageFile', async() => {
 			const packages: PackageInfo[] = [
 				{
 					name: 'package1',
@@ -277,7 +277,7 @@ describe('workspace package - core functionality', () => {
 			await expect(updatePackageVersions(packages, versionMap)).resolves.not.toThrow();
 		});
 
-		it('should handle deno.json packages', async () => {
+		it('should handle deno.json packages', async() => {
 			const pkgPath = join(testDir, 'deno-package');
 			await mkdir(pkgPath, { recursive: true });
 

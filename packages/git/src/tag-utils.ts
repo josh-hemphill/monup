@@ -1,7 +1,6 @@
 /**
  * Tag utility functions for extracting versions from git tags
  */
-import { logger } from './logger.ts';
 
 /**
  * Extracts version from a scoped tag (package@version format)
@@ -75,4 +74,3 @@ export function extractVersionFromTagByStrategy(
 	// Default: remove 'v' prefix
 	return extractVersionFromTag(tag);
 }
-

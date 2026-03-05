@@ -1,12 +1,14 @@
 import type { PackageInfo } from '@monup/workspace';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { publishPackages } from '../src/index.ts';
+
 const { detectPackageManagerMock, executePublishMock } = vi.hoisted(() => ({
-	detectPackageManagerMock: vi.fn(async () => ({ type: 'npm', command: 'pnpm' })),
-	executePublishMock: vi.fn(async () => undefined),
+	detectPackageManagerMock: vi.fn(async() => ({ type: 'npm', command: 'pnpm' })),
+	executePublishMock: vi.fn(async() => undefined),
 }));
 
-vi.mock('../src/detector.ts', async () => {
+vi.mock('../src/detector.ts', async() => {
 	const actual = await vi.importActual<typeof import('../src/detector.ts')>('../src/detector.ts');
 	return {
 		...actual,
@@ -14,15 +16,13 @@ vi.mock('../src/detector.ts', async () => {
 	};
 });
 
-vi.mock('../src/executor.ts', async () => {
+vi.mock('../src/executor.ts', async() => {
 	const actual = await vi.importActual<typeof import('../src/executor.ts')>('../src/executor.ts');
 	return {
 		...actual,
 		executePublish: executePublishMock,
 	};
 });
-
-import { publishPackages } from '../src/index.ts';
 
 describe('publishPackages', () => {
 	const packages: PackageInfo[] = [
@@ -35,7 +35,7 @@ describe('publishPackages', () => {
 		executePublishMock.mockClear();
 	});
 
-	it('publishes all packages with merged context', async () => {
+	it('publishes all packages with merged context', async() => {
 		await publishPackages(
 			packages,
 			{ dryRun: 'auto', isCI: false },

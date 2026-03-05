@@ -1,8 +1,8 @@
 import type { PackageInfo } from '@monup/workspace';
 import { tmpdir } from 'node:os';
+import { getCommitsForPackage, getCommitsSinceLastTag } from '@monup/git';
 import { afterEach, describe, expect, it } from 'vitest';
 import { $, cd, fs, path } from 'zx';
-import { getCommitsForPackage, getCommitsSinceLastTag } from '@monup/git';
 import { calculateBumpType } from '../src/calculator.ts';
 import { runVersionBump } from '../src/index.ts';
 
@@ -62,7 +62,7 @@ async function createTwoPackageRepo(): Promise<RepoContext> {
 describe('runVersionBump package tag behavior', () => {
 	const createdDirs: string[] = [];
 
-	afterEach(async () => {
+	afterEach(async() => {
 		while (createdDirs.length > 0) {
 			const dir = createdDirs.pop();
 			if (typeof dir === 'string') {
@@ -71,7 +71,7 @@ describe('runVersionBump package tag behavior', () => {
 		}
 	});
 
-	it('bumps only touched package by patch for a single scoped fix commit', async () => {
+	it('bumps only touched package by patch for a single scoped fix commit', async() => {
 		const context = await createTwoPackageRepo();
 		createdDirs.push(context.testDir);
 
@@ -144,7 +144,7 @@ describe('runVersionBump package tag behavior', () => {
 		expect(pkg2Json.version).toBe('1.0.0');
 	});
 
-	it('does not let unrelated feat commits leak into another package bump type', async () => {
+	it('does not let unrelated feat commits leak into another package bump type', async() => {
 		const context = await createTwoPackageRepo();
 		createdDirs.push(context.testDir);
 

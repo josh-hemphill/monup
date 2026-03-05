@@ -5,8 +5,8 @@
 
 import type { ParsedCommit } from '@monup/git';
 import type { PackageInfo } from '@monup/workspace';
-import { describe, expect, it } from 'vitest';
 import { filterCommitsByPackage } from '@monup/git';
+import { describe, expect, it } from 'vitest';
 
 /** Creates a mock package info */
 function createPackage(name: string, path: string, root: string): PackageInfo {

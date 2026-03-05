@@ -24,10 +24,10 @@ export const VERSION_FIELD_REGEX: Regex<
 		];
 		names: {
 			prefix:
-			| '"version":"'
-			| `"version" ${string}:"`
-			| `"version": ${string}"`
-			| `"version" ${string}: ${string}"`;
+				| '"version":"'
+				| `"version" ${string}:"`
+				| `"version": ${string}"`
+				| `"version" ${string}: ${string}"`;
 			suffix: '"';
 		};
 	}

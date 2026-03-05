@@ -16,4 +16,3 @@ export function resolveChangelogPath(
 ): string {
 	return typeof changelogPath === 'string' ? changelogPath : resolve(cwd(), defaultLocation);
 }
-

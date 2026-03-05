@@ -30,8 +30,8 @@ export class NpmWorkspaceDetector implements WorkspaceDetector {
 		const workspaces = Array.isArray(pkg.workspaces)
 			? pkg.workspaces
 			: (typeof pkg.workspaces === 'object' && pkg.workspaces !== null && 'packages' in pkg.workspaces && Array.isArray(pkg.workspaces.packages))
-				? pkg.workspaces.packages
-				: [];
+					? pkg.workspaces.packages
+					: [];
 
 		const packages: PackageInfo[] = [];
 

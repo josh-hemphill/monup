@@ -15,8 +15,8 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-pnpm
         with:
-          node-version: "22"
-          pnpm-version: ""
+          node-version: '22'
+          pnpm-version: ''
 
       - name: Lint
         run: pnpm run lint

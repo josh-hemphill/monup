@@ -140,9 +140,9 @@ export function formatChangelogSections(
 	const typeOrder = options.typeOrder;
 	const orderedTypes = (Array.isArray(typeOrder) && typeOrder.length > 0)
 		? [
-			...typeOrder.filter((t) => groupedCommits.has(t)),
-			...[...groupedCommits.keys()].filter((t) => !typeOrder.includes(t)),
-		]
+				...typeOrder.filter((t) => groupedCommits.has(t)),
+				...[...groupedCommits.keys()].filter((t) => !typeOrder.includes(t)),
+			]
 		: [...groupedCommits.keys()];
 
 	// Format by type

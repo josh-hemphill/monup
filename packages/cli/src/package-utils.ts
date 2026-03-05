@@ -13,7 +13,7 @@ import { logger } from './logger.ts';
  */
 export async function getPackagesWithCache(): Promise<PackageInfo[] | undefined> {
 	let packages = getCachedPackages();
-	
+
 	if (typeof packages === 'undefined') {
 		packages = await detectPackages();
 		setCachedPackages(packages);
@@ -26,4 +26,3 @@ export async function getPackagesWithCache(): Promise<PackageInfo[] | undefined>
 
 	return packages;
 }
-

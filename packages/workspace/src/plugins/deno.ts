@@ -38,8 +38,8 @@ export class DenoWorkspaceDetector implements WorkspaceDetector {
 		const workspaces = Array.isArray(config.workspace)
 			? config.workspace
 			: (typeof config.workspace === 'object' && config.workspace !== null && 'packages' in config.workspace && Array.isArray(config.workspace.packages))
-				? config.workspace.packages
-				: [];
+					? config.workspace.packages
+					: [];
 
 		const packages: PackageInfo[] = [];
 

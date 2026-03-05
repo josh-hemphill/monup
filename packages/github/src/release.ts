@@ -164,7 +164,7 @@ export async function listReleases(
 		logger.debug('GitHub releases retrieved', { count: sorted.length });
 		return sorted;
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('Failed to list GitHub releases', {
 			error: error instanceof Error ? error.message : String(error),
 		});

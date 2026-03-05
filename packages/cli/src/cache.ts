@@ -1,9 +1,9 @@
+import type { ParsedCommit } from '@monup/git';
 /**
  * CLI cache for storing parsed data across command invocations
  * Reduces redundant parsing of packages, commits, tags, and versions
  */
 import type { PackageInfo } from '@monup/workspace';
-import type { ParsedCommit } from '@monup/git';
 
 /**
  * Cache storage interface
@@ -113,4 +113,3 @@ export function setCachedVersion(packageName: string, version: string | undefine
 		cache.versions.set(packageName, version);
 	}
 }
-

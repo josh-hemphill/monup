@@ -210,7 +210,7 @@ export async function getPreviousVersion(
 				return latestVersion;
 			}
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('Failed to query registry', {
 				package: pkg.name,
 				error: error instanceof Error ? error.message : String(error),
@@ -231,7 +231,7 @@ export async function getPreviousVersion(
 				return version;
 			}
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('Failed to read changelog', {
 				package: pkg.name,
 				error: error instanceof Error ? error.message : String(error),
@@ -261,7 +261,7 @@ export async function getPreviousVersion(
 				}
 			}
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('Failed to query GitHub releases', {
 				package: pkg.name,
 				error: error instanceof Error ? error.message : String(error),

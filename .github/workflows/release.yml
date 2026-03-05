@@ -3,12 +3,12 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
-      - "*@*" # Also match package@version tags
+      - 'v*'
+      - '*@*' # Also match package@version tags
   workflow_dispatch:
     inputs:
       dry-run:
-        description: "Perform dry run only"
+        description: Perform dry run only
         type: boolean
         default: true
 
@@ -42,7 +42,7 @@ jobs:
         uses: ./.github/actions/setup-pnpm
         with:
           node-version: latest
-          registry-url: "https://registry.npmjs.org"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Build packages
         run: pnpm run build
@@ -68,8 +68,8 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-pnpm
         with:
-          node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Build packages
         run: pnpm run build

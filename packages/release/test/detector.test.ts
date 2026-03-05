@@ -18,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = join(__dirname, 'fixtures');
 
 // Mock zx's which function
-vi.mock('zx', async () => {
+vi.mock('zx', async() => {
 	const actual = await vi.importActual<typeof zx>('zx');
 	return {
 		...actual,
@@ -29,7 +29,7 @@ vi.mock('zx', async () => {
 // Mock spawn to avoid spawning real commands (which may not exist on Windows)
 // Simulate "command not found" by returning undefined (getCommandRunVersion catches throw)
 vi.mock('../src/spawn.ts', () => ({
-	spawnCommand: vi.fn(async (_cmd: string, _args: string[], opts?: { capture?: string }) => {
+	spawnCommand: vi.fn(async(_cmd: string, _args: string[], opts?: { capture?: string }) => {
 		if (opts?.capture === 'text') {
 			// Throw to simulate missing command; getCommandRunVersion catches and returns undefined
 			throw new Error('ENOENT');
@@ -38,11 +38,11 @@ vi.mock('../src/spawn.ts', () => ({
 }));
 
 // Mock package-manager-detector
-vi.mock('package-manager-detector', async () => {
+vi.mock('package-manager-detector', async() => {
 	const actual = await vi.importActual<typeof pmd>('package-manager-detector');
 	return {
 		...actual,
-		detect: vi.fn<typeof pmd.detect>(async (options) => actual.detect({
+		detect: vi.fn<typeof pmd.detect>(async(options) => actual.detect({
 			...options,
 		})),
 	};
@@ -54,7 +54,7 @@ describe('detector', () => {
 	beforeEach(() => {
 		mockWhich = vi.mocked(zx.which, { partial: true });
 		// Default: all commands available
-		mockWhich.mockImplementation(async (cmd: string, _options: Parameters<typeof zx.which>[1]) => {
+		mockWhich.mockImplementation(async(cmd: string, _options: Parameters<typeof zx.which>[1]) => {
 			if (['npm', 'pnpm', 'yarn', 'deno'].includes(cmd)) {
 				return `/usr/local/bin/${cmd}`;
 			}
@@ -67,7 +67,7 @@ describe('detector', () => {
 	});
 
 	describe('priority 1: Explicit Override', () => {
-		it('should use explicit override when provided', async () => {
+		it('should use explicit override when provided', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
@@ -86,7 +86,7 @@ describe('detector', () => {
 			expect(mockWhich).toHaveBeenCalledWith('pnpm', { nothrow: true });
 		});
 
-		it('should use deno native for JSR packages when deno is override', async () => {
+		it('should use deno native for JSR packages when deno is override', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-jsr-package',
 				path: join(fixturesDir, 'jsr-package'),
@@ -105,7 +105,7 @@ describe('detector', () => {
 			expect(result.publishType).toBe('jsr');
 		});
 
-		it('should throw error in strict mode when override is not available', async () => {
+		it('should throw error in strict mode when override is not available', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
@@ -123,14 +123,14 @@ describe('detector', () => {
 			);
 		});
 
-		it('should continue detection in non-strict mode when override is not available', async () => {
+		it('should continue detection in non-strict mode when override is not available', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
 				root: join(fixturesDir, 'npm-package'),
 				packageFile: join(fixturesDir, 'npm-package', 'package.json'),
 			};
-			mockWhich.mockImplementation(async (cmd: string, _options: Parameters<typeof zx.which>[1]) => {
+			mockWhich.mockImplementation(async(cmd: string, _options: Parameters<typeof zx.which>[1]) => {
 				if (cmd === 'nonexistent') {
 					return '';
 				}
@@ -154,7 +154,7 @@ describe('detector', () => {
 	});
 
 	describe('priority 2: Workspace Context', () => {
-		it('should detect pnpm workspace', async () => {
+		it('should detect pnpm workspace', async() => {
 			const workspaceRoot = join(fixturesDir, 'pnpm-workspace');
 			const pkg: PackageInfo = {
 				name: 'pkg1',
@@ -173,7 +173,7 @@ describe('detector', () => {
 			expect(result.publishType).toBe('npm');
 		});
 
-		it('should detect npm workspace with packageManager field', async () => {
+		it('should detect npm workspace with packageManager field', async() => {
 			const workspaceRoot = join(fixturesDir, 'npm-workspace-yarn');
 			const pkg: PackageInfo = {
 				name: 'pkg1',
@@ -192,7 +192,7 @@ describe('detector', () => {
 			expect(result.publishType).toBe('npm');
 		});
 
-		it('should detect deno workspace', async () => {
+		it('should detect deno workspace', async() => {
 			const workspaceRoot = join(fixturesDir, 'deno-workspace');
 			const pkg: PackageInfo = {
 				name: 'pkg1',
@@ -211,7 +211,7 @@ describe('detector', () => {
 			expect(result.publishType).toBe('jsr');
 		});
 
-		it('should resolve conflicts using commandPriority', async () => {
+		it('should resolve conflicts using commandPriority', async() => {
 			const workspaceRoot = join(fixturesDir, 'conflict-workspace');
 			const pkg: PackageInfo = {
 				name: 'pkg1',
@@ -239,7 +239,7 @@ describe('detector', () => {
 			expect(result2.publishType).toBe('npm');
 		});
 
-		it('should not detect workspace if package is not in workspace pattern', async () => {
+		it('should not detect workspace if package is not in workspace pattern', async() => {
 			const workspaceRoot = join(fixturesDir, 'outside-workspace');
 			const packagePath = join(workspaceRoot, 'other', 'pkg1');
 			const pkg: PackageInfo = {
@@ -263,7 +263,7 @@ describe('detector', () => {
 	});
 
 	describe('priority 2.5: JSR Deno Preference', () => {
-		it('should prefer deno when deno.json exists and deno is available', async () => {
+		it('should prefer deno when deno.json exists and deno is available', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-jsr-with-deno',
 				path: join(fixturesDir, 'jsr-with-deno-json'),
@@ -281,7 +281,7 @@ describe('detector', () => {
 			expect(result.publishType).toBe('jsr');
 		});
 
-		it('should not prefer deno if deno.json exists but deno is not available', async () => {
+		it('should not prefer deno if deno.json exists but deno is not available', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-jsr-with-deno',
 				path: join(fixturesDir, 'jsr-with-deno-json'),
@@ -289,7 +289,7 @@ describe('detector', () => {
 				packageFile: join(fixturesDir, 'jsr-with-deno-json', 'jsr.json'),
 			};
 
-			mockWhich.mockImplementation(async (cmd: string, _options: Parameters<typeof zx.which>[1]) => {
+			mockWhich.mockImplementation(async(cmd: string, _options: Parameters<typeof zx.which>[1]) => {
 				if (cmd === 'deno') {
 					return '';
 				}
@@ -310,7 +310,7 @@ describe('detector', () => {
 			expect(result.publishType).toBe('jsr');
 		});
 
-		it('should not apply to npm packages', async () => {
+		it('should not apply to npm packages', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
@@ -330,7 +330,7 @@ describe('detector', () => {
 	});
 
 	describe('priority 3: package-manager-detector', () => {
-		it('should use package-manager-detector result from lockfile/install-metadata', async () => {
+		it('should use package-manager-detector result from lockfile/install-metadata', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
@@ -356,14 +356,14 @@ describe('detector', () => {
 	});
 
 	describe('priority 4: Command Availability', () => {
-		it('should use first available command from priority list', async () => {
+		it('should use first available command from priority list', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
 				root: join(fixturesDir, 'npm-package'),
 				packageFile: join(fixturesDir, 'npm-package', 'package.json'),
 			};
-			mockWhich.mockImplementation(async (cmd: string, _options: Parameters<typeof zx.which>[1]) => {
+			mockWhich.mockImplementation(async(cmd: string, _options: Parameters<typeof zx.which>[1]) => {
 				// Only yarn is available
 				if (cmd === 'yarn') {
 					return '/usr/local/bin/yarn';
@@ -381,14 +381,14 @@ describe('detector', () => {
 			expect(result.publishType).toBe('npm');
 		});
 
-		it('should respect excludedCommands', async () => {
+		it('should respect excludedCommands', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
 				root: join(fixturesDir, 'npm-package'),
 				packageFile: join(fixturesDir, 'npm-package', 'package.json'),
 			};
-			mockWhich.mockImplementation(async (cmd: string, _options: Parameters<typeof zx.which>[1]) => {
+			mockWhich.mockImplementation(async(cmd: string, _options: Parameters<typeof zx.which>[1]) => {
 				if (['pnpm', 'yarn'].includes(cmd)) {
 					return `/usr/local/bin/${cmd}`;
 				}
@@ -408,14 +408,14 @@ describe('detector', () => {
 			expect(result.publishType).toBe('npm');
 		});
 
-		it('should respect custom commandPriority', async () => {
+		it('should respect custom commandPriority', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
 				root: join(fixturesDir, 'npm-package'),
 				packageFile: join(fixturesDir, 'npm-package', 'package.json'),
 			};
-			mockWhich.mockImplementation(async (cmd: string, _options: Parameters<typeof zx.which>[1]) => {
+			mockWhich.mockImplementation(async(cmd: string, _options: Parameters<typeof zx.which>[1]) => {
 				if (['npm', 'pnpm'].includes(cmd)) {
 					return `/usr/local/bin/${cmd}`;
 				}
@@ -438,7 +438,7 @@ describe('detector', () => {
 	});
 
 	describe('custom Detection Order', () => {
-		it('should respect custom detectionOrder', async () => {
+		it('should respect custom detectionOrder', async() => {
 			const pkg: PackageInfo = {
 				name: 'workspace-root',
 				path: join(fixturesDir, 'npm-workspace-yarn'),
@@ -471,7 +471,7 @@ describe('detector', () => {
 			});
 		});
 
-		it('should skip unknown detection checks', async () => {
+		it('should skip unknown detection checks', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
@@ -498,7 +498,7 @@ describe('detector', () => {
 	});
 
 	describe('error Handling', () => {
-		it('should throw error when no package manager is available (strict mode)', async () => {
+		it('should throw error when no package manager is available (strict mode)', async() => {
 			const pkg: PackageInfo = {
 				name: 'test-npm-package',
 				path: join(fixturesDir, 'npm-package'),
@@ -516,7 +516,7 @@ describe('detector', () => {
 			);
 		});
 
-		it('should throw error for unknown package type', async () => {
+		it('should throw error for unknown package type', async() => {
 			const pkg: PackageInfo = {
 				name: 'test',
 				path: fixturesDir,

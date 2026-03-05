@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveOptions } from '../src/index.ts';
 
 describe('resolveOptions', () => {
-	it('should return default options when no overrides provided', async () => {
+	it('should return default options when no overrides provided', async() => {
 		const result = await resolveOptions();
 		expect(result).toBeDefined();
 		expect(result.changelog).toBeDefined();
@@ -15,7 +15,7 @@ describe('resolveOptions', () => {
 		expect(typeof result.confirm).toBe('boolean');
 	});
 
-	it('should merge overrides with defaults', async () => {
+	it('should merge overrides with defaults', async() => {
 		const overrides: Partial<MonupOptions> = {
 			changelog: {
 				location: 'CUSTOM_CHANGELOG.md',
@@ -25,7 +25,7 @@ describe('resolveOptions', () => {
 		expect(result.changelog.location).toBe('CUSTOM_CHANGELOG.md');
 	});
 
-	it('should handle nested option merging', async () => {
+	it('should handle nested option merging', async() => {
 		const overrides: Partial<MonupOptions> = {
 			version: {
 				files: ['package.json'],
@@ -35,7 +35,7 @@ describe('resolveOptions', () => {
 		expect(result.version.files).toEqual(['package.json']);
 	});
 
-	it('should allow explicit confirm override', async () => {
+	it('should allow explicit confirm override', async() => {
 		const overrides: Partial<MonupOptions> = {
 			confirm: false,
 		};
@@ -43,7 +43,7 @@ describe('resolveOptions', () => {
 		expect(result.confirm).toBe(false);
 	});
 
-	it('should merge conventional config', async () => {
+	it('should merge conventional config', async() => {
 		const overrides: Partial<MonupOptions> = {
 			conventional: {
 				types: {

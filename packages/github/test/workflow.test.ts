@@ -1,12 +1,14 @@
 import type { PackageInfo } from '@monup/workspace';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createReleasesForPackages } from '../src/index.ts';
+
 const { createReleaseMock, getCurrentVersionFromFileMock } = vi.hoisted(() => ({
-	createReleaseMock: vi.fn(async () => undefined),
-	getCurrentVersionFromFileMock: vi.fn(async () => '1.2.3'),
+	createReleaseMock: vi.fn(async() => undefined),
+	getCurrentVersionFromFileMock: vi.fn(async() => '1.2.3'),
 }));
 
-vi.mock('../src/release.ts', async () => {
+vi.mock('../src/release.ts', async() => {
 	const actual = await vi.importActual<typeof import('../src/release.ts')>('../src/release.ts');
 	return {
 		...actual,
@@ -18,15 +20,13 @@ vi.mock('@monup/version', () => ({
 	getCurrentVersionFromFile: getCurrentVersionFromFileMock,
 }));
 
-import { createReleasesForPackages } from '../src/index.ts';
-
 describe('createReleasesForPackages', () => {
 	beforeEach(() => {
 		createReleaseMock.mockClear();
 		getCurrentVersionFromFileMock.mockClear();
 	});
 
-	it('creates releases for packages with package files', async () => {
+	it('creates releases for packages with package files', async() => {
 		const packages: PackageInfo[] = [
 			{
 				name: 'pkg1',
@@ -61,7 +61,7 @@ describe('createReleasesForPackages', () => {
 		);
 	});
 
-	it('skips packages without package file', async () => {
+	it('skips packages without package file', async() => {
 		const packages: PackageInfo[] = [
 			{
 				name: 'pkg-no-file',

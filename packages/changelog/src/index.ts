@@ -1,5 +1,4 @@
 import type { GitOptions, ParsedCommit } from '@monup/git';
-import { filterCommitsByPackage, getGitHubRepo } from '@monup/git';
 import type { GitHubOptions } from '@monup/github';
 import type { ReleaseOptions } from '@monup/release';
 import type { PackageInfo } from '@monup/workspace';
@@ -9,6 +8,7 @@ import type { ChangelogOptions } from './options.ts';
  */
 import { dirname, resolve } from 'node:path';
 import { cwd } from 'node:process';
+import { filterCommitsByPackage, getGitHubRepo } from '@monup/git';
 import { sortVersionsDescending } from '@monup/utils';
 import { getPreviousVersion } from '@monup/version';
 import { fs } from 'zx';
@@ -173,7 +173,7 @@ export async function getLatestVersionFromChangelog(
 		logger.debug('Latest version from changelog', { packageName, version: latestVersion });
 		return latestVersion ?? undefined;
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('Failed to read changelog', {
 			changelogLocation,
 			error: error instanceof Error ? error.message : String(error),
@@ -203,7 +203,7 @@ export async function runChangelog(
 		try {
 			version = await getLatestVersionFromChangelog(undefined, options.changelog);
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('Failed to get version from changelog', {
 				error: error instanceof Error ? error.message : String(error),
 			});
@@ -220,7 +220,7 @@ export async function runChangelog(
 					root: options.root,
 				});
 			}
-			catch (error: unknown) {
+			catch(error: unknown) {
 				logger.debug('Failed to get previous version', {
 					error: error instanceof Error ? error.message : String(error),
 				});
@@ -258,7 +258,7 @@ export async function runChangelog(
 				root: options.root,
 			});
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('Failed to get previous version', {
 				package: pkg.name,
 				error: error instanceof Error ? error.message : String(error),
@@ -269,7 +269,7 @@ export async function runChangelog(
 			try {
 				version = await getLatestVersionFromChangelog(pkg.name, options.changelog, changelogPath);
 			}
-			catch (error: unknown) {
+			catch(error: unknown) {
 				logger.debug('Failed to get version from changelog', {
 					package: pkg.name,
 					error: error instanceof Error ? error.message : String(error),

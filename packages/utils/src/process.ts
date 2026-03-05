@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 /**
  * Spawns a process without shell interpolation to avoid path/quoting issues
  */

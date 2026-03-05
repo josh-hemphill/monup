@@ -74,7 +74,7 @@ export async function main(): Promise<void> {
 		.option('--major', 'Force major version bump')
 		.option('--minor', 'Force minor version bump')
 		.option('--patch', 'Force patch version bump')
-		.action(async (options: Record<string, unknown>) => {
+		.action(async(options: Record<string, unknown>) => {
 			const bumpType = typeof options.major === 'boolean' && options.major
 				? 'major'
 				: typeof options.minor === 'boolean' && options.minor
@@ -87,14 +87,14 @@ export async function main(): Promise<void> {
 
 	cli
 		.command('changelog', 'Generate changelog from commits')
-		.action(async () => {
+		.action(async() => {
 			await handleChangelog(resolvedOptions);
 		});
 
 	cli
 		.command('release', 'Publish packages to npm/JSR')
 		.option('--dry-run', 'Only validate, do not publish')
-		.action(async (options: Record<string, unknown>) => {
+		.action(async(options: Record<string, unknown>) => {
 			if (typeof options.dryRun === 'boolean' && options.dryRun) {
 				resolvedOptions.release.dryRun = true;
 			}
@@ -103,13 +103,13 @@ export async function main(): Promise<void> {
 
 	cli
 		.command('github', 'Create GitHub releases')
-		.action(async () => {
+		.action(async() => {
 			await handleGithub(resolvedOptions);
 		});
 
 	cli
 		.command('all', 'Run complete workflow: version → changelog → release → github')
-		.action(async () => {
+		.action(async() => {
 			await handleAll(resolvedOptions);
 		});
 
@@ -148,7 +148,7 @@ export async function main(): Promise<void> {
 		// You only need `await` when your command action returns a Promise
 		await cli.runMatchedCommand();
 	}
-	catch (error) {
+	catch(error) {
 		// Handle error here..
 		console.error((error as Error).stack);
 		// Clear cache at CLI end (though this may not execute if process exits)

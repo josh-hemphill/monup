@@ -20,12 +20,12 @@ interface CommitHeader {
 }
 type Join<T extends ReadonlyArray<string>, S extends string = ''>
 	= T extends Readonly<[infer First, ...infer Rest]>
-	? Rest extends ReadonlyArray<string>
-	? First extends string
-	? `${First}${Rest extends [] ? '' : S}${Join<Rest, S>}`
-	: never
-	: never
-	: '';
+		? Rest extends ReadonlyArray<string>
+			? First extends string
+				? `${First}${Rest extends [] ? '' : S}${Join<Rest, S>}`
+				: never
+			: never
+		: '';
 /**
  * Commit header regex with pipe delimiter
  */

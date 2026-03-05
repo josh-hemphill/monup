@@ -14,7 +14,7 @@ describe('git package - shell command test cases', () => {
 	let testDir: string;
 	let testRepoDir: string;
 
-	beforeAll(async () => {
+	beforeAll(async() => {
 		testDir = path.join(tmpdir(), `monup-git-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		testRepoDir = path.join(testDir, 'repo');
 		await fs.mkdir(testRepoDir, { recursive: true });
@@ -57,7 +57,7 @@ describe('git package - shell command test cases', () => {
 		}
 	});
 
-	afterAll(async () => {
+	afterAll(async() => {
 		try {
 			await fs.rm(testDir, { recursive: true, force: true });
 		}
@@ -65,7 +65,7 @@ describe('git package - shell command test cases', () => {
 			// Ignore cleanup errors
 		}
 	});
-	it('should get commits from HEAD', async () => {
+	it('should get commits from HEAD', async() => {
 		const commits = await getCommits(undefined, undefined, mockPackages, testRepoDir);
 		expect(Array.isArray(commits)).toBe(true);
 		expect(commits.length).toBeGreaterThan(0);
@@ -73,20 +73,20 @@ describe('git package - shell command test cases', () => {
 		expect(commits[0]?.hash.length).toBeGreaterThanOrEqual(7);
 	});
 
-	it('should get commits without package info', async () => {
+	it('should get commits without package info', async() => {
 		const commits = await getCommits(undefined, undefined, undefined, testRepoDir);
 		expect(Array.isArray(commits)).toBe(true);
 		expect(commits.length).toBeGreaterThan(0);
 		expect(typeof commits[0]?.hash).toBe('string');
 	});
 
-	it('should get current branch', async () => {
+	it('should get current branch', async() => {
 		const branch = await getCurrentBranch(testRepoDir);
 		expect(typeof branch).toBe('string');
 		expect(branch.length).toBeGreaterThan(0);
 	});
 
-	it('should get last tag with default filter', async () => {
+	it('should get last tag with default filter', async() => {
 		const lastTag = await getLastTag(undefined, undefined, undefined, testRepoDir);
 		expect(lastTag).toBeDefined();
 		expect(typeof lastTag).toBe('string');
@@ -94,7 +94,7 @@ describe('git package - shell command test cases', () => {
 		expect(tag.length).toBeGreaterThan(0);
 	});
 
-	it('should get last tag with custom filter', async () => {
+	it('should get last tag with custom filter', async() => {
 		const lastTag = await getLastTag(undefined, undefined, (tag) => tag.startsWith('v'), testRepoDir);
 		expect(lastTag).toBeDefined();
 		expect(typeof lastTag).toBe('string');
@@ -102,7 +102,7 @@ describe('git package - shell command test cases', () => {
 		expect(tag.startsWith('v')).toBe(true);
 	});
 
-	it('should get last tag with template', async () => {
+	it('should get last tag with template', async() => {
 		const lastTag = await getLastTag(undefined, 'v%s', undefined, testRepoDir);
 		expect(lastTag).toBeDefined();
 		expect(typeof lastTag).toBe('string');
@@ -110,7 +110,7 @@ describe('git package - shell command test cases', () => {
 		expect(tag.length).toBeGreaterThan(0);
 	});
 
-	it('should get first commit', async () => {
+	it('should get first commit', async() => {
 		const firstCommit = await getFirstCommit(testRepoDir);
 		expect(firstCommit).toBeDefined();
 		expect(typeof firstCommit).toBe('string');
@@ -118,7 +118,7 @@ describe('git package - shell command test cases', () => {
 		expect(commit.length).toBeGreaterThanOrEqual(7);
 	});
 
-	it('should get GitHub repository info', async () => {
+	it('should get GitHub repository info', async() => {
 		// This test may not work with temporary repo, so we'll skip the assertion if undefined
 		const repo = await getGitHubRepo('github.com', testRepoDir);
 		// Temporary repo won't have a remote, so this will be undefined
@@ -131,7 +131,7 @@ describe('git package - shell command test cases', () => {
 		}
 	});
 
-	it('should create commit with pathspec normalization', async () => {
+	it('should create commit with pathspec normalization', async() => {
 		await fs.writeFile(path.join(testRepoDir, 'package.json'), JSON.stringify({
 			name: 'test-package',
 			version: '1.0.1',

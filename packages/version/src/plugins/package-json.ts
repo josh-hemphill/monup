@@ -1,9 +1,9 @@
 import type { VersionUpdater } from './index.ts';
+import { resolve } from 'node:path';
 /**
  * Package.json version updater plugin
  */
 import { parseJson } from '@monup/utils';
-import { resolve } from 'node:path';
 import { fs } from 'zx';
 
 interface PackageJson {

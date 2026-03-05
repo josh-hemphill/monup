@@ -33,7 +33,7 @@ function createMockStream(chunks: string[]): NodeJS.ReadableStream {
 }
 
 describe('streamGitCommits', () => {
-	it('should parse single commit with files', async () => {
+	it('should parse single commit with files', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -57,7 +57,7 @@ describe('streamGitCommits', () => {
 		expect(commit.type).toBe('feat');
 	});
 
-	it('should parse multiple commits with different packages', async () => {
+	it('should parse multiple commits with different packages', async() => {
 		const commit1 = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -97,7 +97,7 @@ describe('streamGitCommits', () => {
 		expect(c2.packages).toEqual(['package2']);
 	});
 
-	it('should handle commits with files from multiple packages', async () => {
+	it('should handle commits with files from multiple packages', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -119,7 +119,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toEqual(['package1', 'package2', 'package3']);
 	});
 
-	it('should handle commits with no files', async () => {
+	it('should handle commits with no files', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -141,7 +141,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toBeUndefined();
 	});
 
-	it('should handle files that do not belong to any package', async () => {
+	it('should handle files that do not belong to any package', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -163,7 +163,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toBeUndefined();
 	});
 
-	it('should handle chunked data with incomplete lines', async () => {
+	it('should handle chunked data with incomplete lines', async() => {
 		// Split the output across multiple chunks to test buffering
 		const chunks = [
 			'abc123def4567890123456789012345678901234|John|john@example.com|2024-01-01|feat: chunked|\npackages/pkg1/file',
@@ -181,7 +181,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toEqual(['package1', 'package2']);
 	});
 
-	it('should handle chunked data splitting a commit header across chunks', async () => {
+	it('should handle chunked data splitting a commit header across chunks', async() => {
 		const chunks = [
 			'abc123def4567890123456789012345678901234|John|john@example.com|2024-01-01|feat: header spl',
 			'it|\npackages/pkg1/file.ts\n',
@@ -199,7 +199,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toEqual(['package1']);
 	});
 
-	it('should map packages when package paths use Windows separators', async () => {
+	it('should map packages when package paths use Windows separators', async() => {
 		const windowsRoot = 'E:\\\\Share\\\\dev\\\\monup';
 		const windowsPackages = [
 			{ name: '@monup/cli', path: 'E:\\\\Share\\\\dev\\\\monup\\\\packages\\\\cli', root: windowsRoot },
@@ -225,7 +225,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toEqual(['@monup/cli']);
 	});
 
-	it('should parse conventional commit types correctly', async () => {
+	it('should parse conventional commit types correctly', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -249,7 +249,7 @@ describe('streamGitCommits', () => {
 		expect(commit.subject).toBe('resolve bug');
 	});
 
-	it('should detect breaking changes', async () => {
+	it('should detect breaking changes', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -271,7 +271,7 @@ describe('streamGitCommits', () => {
 		expect(commit.breaking).toBe(true);
 	});
 
-	it('should handle commits with body text', async () => {
+	it('should handle commits with body text', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -293,7 +293,7 @@ describe('streamGitCommits', () => {
 		expect(commit.body).toBe('body line 1|body line 2');
 	});
 
-	it('should handle empty stream', async () => {
+	it('should handle empty stream', async() => {
 		const stream = createMockStream(['']);
 		const commits: unknown[] = [];
 
@@ -304,7 +304,7 @@ describe('streamGitCommits', () => {
 		expect(commits.length).toBe(0);
 	});
 
-	it('should handle files with relative paths starting with ./', async () => {
+	it('should handle files with relative paths starting with ./', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',
@@ -330,7 +330,7 @@ describe('streamGitCommits', () => {
 		expect(commit.packages).toEqual(['package1']);
 	});
 
-	it('should sort packages alphabetically', async () => {
+	it('should sort packages alphabetically', async() => {
 		const gitOutput = createCommit(
 			'abc123def4567890123456789012345678901234',
 			'John Doe',

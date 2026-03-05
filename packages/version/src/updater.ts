@@ -3,8 +3,8 @@ import type { VersionUpdater } from './plugins/index.ts';
  * Package file version updater
  */
 import { resolve } from 'node:path';
-import { fs } from 'zx';
 import { regex } from 'arkregex';
+import { fs } from 'zx';
 
 /**
  * Updates version in a package file

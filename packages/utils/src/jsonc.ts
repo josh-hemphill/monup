@@ -34,7 +34,7 @@ export function parseJson<T = unknown>(json: string): T {
 	try {
 		return JSON.parse(json) as T;
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		const message = error instanceof Error ? error.message : 'Invalid JSON';
 		throw new Error(`Failed to parse JSON: ${message}`);
 	}

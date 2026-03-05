@@ -12,7 +12,7 @@ describe('git workflow helpers', () => {
 	let pkg1: PackageInfo;
 	let pkg2: PackageInfo;
 
-	beforeAll(async () => {
+	beforeAll(async() => {
 		testDir = path.join(tmpdir(), `monup-git-workflow-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		testRepoDir = path.join(testDir, 'repo');
 		await fs.mkdir(path.join(testRepoDir, 'packages', 'pkg1'), { recursive: true });
@@ -62,11 +62,11 @@ describe('git workflow helpers', () => {
 		packages = [rootPackage, pkg1, pkg2];
 	});
 
-	afterAll(async () => {
+	afterAll(async() => {
 		await fs.rm(testDir, { recursive: true, force: true });
 	});
 
-	it('gets commits since last global tag', async () => {
+	it('gets commits since last global tag', async() => {
 		const commits = await getCommitsSinceLastTag(
 			{ tagStrategy: 'global', tagTemplate: 'v%s' },
 			packages,
@@ -76,7 +76,7 @@ describe('git workflow helpers', () => {
 		expect(commits.length).toBeGreaterThanOrEqual(3);
 	});
 
-	it('gets commits since package tags when strategy is package', async () => {
+	it('gets commits since package tags when strategy is package', async() => {
 		const commits = await getCommitsSinceLastTag(
 			{ tagStrategy: 'package', tagTemplate: 'v%s' },
 			packages,
@@ -87,7 +87,7 @@ describe('git workflow helpers', () => {
 		expect(commits.some((commit) => commit.packages?.includes('pkg1'))).toBe(true);
 	});
 
-	it('filters commits for a package with global strategy', async () => {
+	it('filters commits for a package with global strategy', async() => {
 		const allCommits = await getCommitsSinceLastTag(
 			{ tagStrategy: 'global', tagTemplate: 'v%s' },
 			packages,
@@ -116,7 +116,7 @@ describe('git workflow helpers', () => {
 		expect(pkg2Commits.every((commit) => commit.packages?.includes('pkg2') === true)).toBe(true);
 	});
 
-	it('includes unscoped commits for root package', async () => {
+	it('includes unscoped commits for root package', async() => {
 		const allCommits = await getCommitsSinceLastTag(
 			{ tagStrategy: 'global', tagTemplate: 'v%s' },
 			packages,

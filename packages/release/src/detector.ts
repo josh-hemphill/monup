@@ -74,7 +74,7 @@ async function getCommandRunVersion(commandPath: string): Promise<string | undef
 		const result = await spawnCommand(commandPath, ['--version'], { capture: 'text' });
 		return typeof result === 'string' ? result.trim() : undefined;
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('Failed to get command version', {
 			commandPath,
 			error: error instanceof Error ? error.message : String(error),
@@ -175,8 +175,8 @@ async function analyzeWorkspace(
 			const workspaces = Array.isArray(pkg.workspaces)
 				? pkg.workspaces
 				: (typeof pkg.workspaces === 'object' && pkg.workspaces !== null && 'packages' in pkg.workspaces && Array.isArray(pkg.workspaces.packages))
-					? pkg.workspaces.packages
-					: [];
+						? pkg.workspaces.packages
+						: [];
 
 			if (workspaces.length > 0) {
 				// Check if package is in any workspace pattern
@@ -371,7 +371,7 @@ async function checkPackageManagerDetector(
 			}
 		}
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('package-manager-detector failed', {
 			package: ctx.pkg.name,
 			error: error instanceof Error ? error.message : String(error),

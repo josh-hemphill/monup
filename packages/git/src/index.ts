@@ -1,4 +1,4 @@
-import { filterCommitsByPackage, type PackageInfo } from './filter.ts';
+import type { PackageInfo } from './filter.ts';
 import type { ParsedCommit } from './parser.ts';
 /**
  * Git operations via zx shell processes
@@ -7,6 +7,7 @@ import { cwd, stderr } from 'node:process';
 import { regex } from 'arkregex';
 import { $ } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
+import { filterCommitsByPackage } from './filter.ts';
 import { logger } from './logger.ts';
 import { parseGitLog } from './parser.ts';
 import { spawnGit } from './spawn.ts';
@@ -106,7 +107,7 @@ export async function getCommits(
 				throw new Error(`git log failed with exit code ${gitProcess.exitCode}`);
 			}
 		}
-		catch (error) {
+		catch(error) {
 			if (error instanceof Error) {
 				throw error;
 			}
@@ -365,7 +366,7 @@ export async function getCommitsForPackage(
 				return selectPackageCommits(commitsSincePackageTag, pkg, [pkg]);
 			}
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('Failed to get commits for package from last tag', {
 				package: pkg.name,
 				error: error instanceof Error ? error.message : String(error),

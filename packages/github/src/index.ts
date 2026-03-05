@@ -1,8 +1,8 @@
+import type { ChangelogOptions } from '@monup/changelog';
 /**
  * GitHub API client and release creation
  */
 import type { GitOptions } from '@monup/git';
-import type { ChangelogOptions } from '@monup/changelog';
 import type { PackageInfo } from '@monup/workspace';
 import { formatTag } from '@monup/git';
 import { getCurrentVersionFromFile } from '@monup/version';

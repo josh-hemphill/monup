@@ -12,7 +12,7 @@ describe('runChangelog', () => {
 	let pkg2: PackageInfo;
 	let packages: PackageInfo[];
 
-	beforeEach(async () => {
+	beforeEach(async() => {
 		testDir = join(tmpdir(), `monup-changelog-workflow-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		const pkg1Dir = join(testDir, 'packages', 'pkg1');
 		const pkg2Dir = join(testDir, 'packages', 'pkg2');
@@ -27,11 +27,11 @@ describe('runChangelog', () => {
 		packages = [pkg1, pkg2];
 	});
 
-	afterEach(async () => {
+	afterEach(async() => {
 		await rm(testDir, { recursive: true, force: true });
 	});
 
-	it('creates per-package changelog only for packages with commits', async () => {
+	it('creates per-package changelog only for packages with commits', async() => {
 		await runChangelog(
 			{
 				changelog: {
@@ -64,7 +64,7 @@ describe('runChangelog', () => {
 		await expect(stat(join(pkg2.path, 'CHANGELOG.md'))).rejects.toThrow();
 	});
 
-	it('creates root changelog for root strategy', async () => {
+	it('creates root changelog for root strategy', async() => {
 		await runChangelog(
 			{
 				changelog: {

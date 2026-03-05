@@ -80,8 +80,7 @@ function formatLogArgs(options: LogFormatterOptions, ...args: unknown[]): string
 		&& args[1] !== null
 		&& !Array.isArray(args[1])
 		&& !(args[1] instanceof Date)
-		&& !(args[1] instanceof Error)
-	) {
+		&& !(args[1] instanceof Error)) {
 		const formatted = formatColoredLogValue(options, args[1]);
 		const combined = formatted.length > 0 ? `${args[0]} ${formatted}` : args[0];
 		// Process remaining args
@@ -172,9 +171,9 @@ function resolveAffix(
  */
 export function applyLogFormatter(logger: ReturnType<typeof import('loglevel').getLogger>, options: LogFormatterOptions = {}): void {
 	const originalFactory = logger.methodFactory;
-	logger.methodFactory = function (methodName, logLevel, loggerName) {
+	logger.methodFactory = function(methodName, logLevel, loggerName) {
 		const rawMethod = originalFactory(methodName, logLevel, loggerName);
-		return function (...args: unknown[]) {
+		return function(...args: unknown[]) {
 			const formatted = formatLogArgs(options, ...args);
 			const prefix = resolveAffix(options.prefix, options.formatMap, methodName, logLevel, loggerName, args);
 			if (typeof prefix === 'string' && prefix.length > 0) {

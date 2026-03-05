@@ -62,7 +62,7 @@ async function listNpmVersions(
 		logger.debug('Unexpected npm view output format', { packageName, output });
 		return [];
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('Failed to list npm versions', {
 			packageName,
 			error: getErrorMessage(error),
@@ -106,7 +106,7 @@ async function listJsrVersions(packageName: string): Promise<string[]> {
 		logger.debug('Unexpected JSR API response format', { packageName });
 		return [];
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('Failed to list JSR versions', {
 			packageName,
 			error: getErrorMessage(error),
@@ -125,13 +125,13 @@ async function getPackageName(pkg: PackageInfo): Promise<string | undefined> {
 
 	try {
 		const content = await fs.readFile(pkg.packageFile, 'utf-8');
-		const json = parseJson<{ name?: string;[key: string]: unknown }>(content);
+		const json = parseJson<{ name?: string; [key: string]: unknown }>(content);
 
 		if (typeof json.name === 'string') {
 			return json.name;
 		}
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		logger.debug('Failed to read package name', {
 			packageFile: pkg.packageFile,
 			error: getErrorMessage(error),

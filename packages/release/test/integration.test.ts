@@ -39,7 +39,7 @@ describe('release package - integration tests', () => {
 		spyConsole.mockRestore();
 	});
 
-	it('should execute dry-run for npm package with pnpm', async () => {
+	it('should execute dry-run for npm package with pnpm', async() => {
 		const pnpmPath = await which('pnpm', { nothrow: true });
 		if (typeof pnpmPath !== 'string') {
 			// Skip if pnpm not available
@@ -71,7 +71,7 @@ describe('release package - integration tests', () => {
 		).toBe(true);
 	}, 100000); // Increase timeout
 
-	it('should execute dry-run for jsr package', async () => {
+	it('should execute dry-run for jsr package', async() => {
 		const denoPath = await which('deno', { nothrow: true });
 		if (typeof denoPath !== 'string') {
 			// Skip if deno not available
