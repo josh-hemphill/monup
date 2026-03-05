@@ -36,17 +36,7 @@ export async function handleChangelog(options: ResolvedMonupOptions): Promise<vo
 		logger.debug('Using cached commits');
 	}
 
-	await (runChangelog as (
-		workflowOptions: {
-			changelog: ResolvedMonupOptions['changelog'];
-			git: ResolvedMonupOptions['git'];
-			release: ResolvedMonupOptions['release'];
-			github: ResolvedMonupOptions['github'];
-			root: string;
-		},
-		packageList: typeof packages,
-		commitList: ParsedCommit[],
-	) => Promise<void>)({
+	await runChangelog({
 		changelog: options.changelog,
 		git: options.git,
 		release: options.release,
