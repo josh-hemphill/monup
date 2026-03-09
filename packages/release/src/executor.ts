@@ -71,6 +71,8 @@ export async function executePublish(
 			command.args.push('--allow-dirty');
 		}
 		else if (config.publishType === 'jsr' && config.command.name === 'pnpm') {
+			// JSR npm compat package passes through to deno under the hood
+			command.args.push('--allow-dirty');
 		}
 		else {
 			throw new Error(`Allow dirty is not supported for ${config.publishType} ${config.command.name}`);
