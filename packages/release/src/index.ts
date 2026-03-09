@@ -22,11 +22,11 @@ export async function publish(
 	options: ReleaseOptionsWithDeps,
 ): Promise<void> {
 	const resolvedOptions = resolveReleaseOptions(options);
-	const isCI = options.isCI ?? false;
+	const isCI = resolvedOptions.isCI ?? false;
 
 	// Determine if we should do a dry run
-	const shouldDryRun = options.dryRun === true
-		|| (options.dryRun === 'auto' && !isCI);
+	const shouldDryRun = resolvedOptions.dryRun === true
+		|| (resolvedOptions.dryRun === 'auto' && !isCI);
 
 	// Actual publish
 	const config = await detectPackageManager(pkg, resolvedOptions);

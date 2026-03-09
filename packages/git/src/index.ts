@@ -17,7 +17,8 @@ import { escapeRegex, extractVersionFromScopedTag, extractVersionFromTagByStrate
 export type { PackageInfo } from './filter.ts';
 export { filterCommitsByPackage } from './filter.ts';
 export { logger } from './logger.ts';
-export { createCommit, createTag, formatTag, pushToRemote } from './operations.ts';
+export { assertCleanWorkingTree, createCommit, createTag, formatTag, getWorkingTreeStatus, pushToRemote } from './operations.ts';
+export type { WorkingTreeChange, WorkingTreeStatus } from './operations.ts';
 export type { GitOptions, ResolvedGitOptions } from './options.ts';
 export { defaultGitOptions } from './options.ts';
 export { parseConventionalCommit, type ParsedCommit, parseGitLog } from './parser.ts';

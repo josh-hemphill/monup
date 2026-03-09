@@ -44,8 +44,24 @@ jobs:
           node-version: latest
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Log git state before build
+        run: |
+          git status --short --branch
+          git diff --stat
+          git diff --cached --stat
+
       - name: Build packages
         run: pnpm run build
+
+      - name: Check git working tree after build
+        run: |
+          git status --short --branch
+          git diff --stat
+          git diff --cached --stat
+          if [[ -n "$(git status --porcelain=v1)" ]]; then
+            echo "::error::Build left the git working tree dirty"
+            exit 1
+          fi
 
       - name: Run monup release dry-run
         run: node packages/cli/bin/monup.mjs release --dry-run --log-level debug
@@ -71,8 +87,24 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Log git state before build
+        run: |
+          git status --short --branch
+          git diff --stat
+          git diff --cached --stat
+
       - name: Build packages
         run: pnpm run build
+
+      - name: Check git working tree after build
+        run: |
+          git status --short --branch
+          git diff --stat
+          git diff --cached --stat
+          if [[ -n "$(git status --porcelain=v1)" ]]; then
+            echo "::error::Build left the git working tree dirty"
+            exit 1
+          fi
 
       - name: Configure npm auth
         run: |

@@ -1,6 +1,8 @@
 /**
  * Release command handler
  */
+import type { WorkingTreeChange } from '@monup/git';
+import { getWorkingTreeStatus } from '@monup/git';
 import type { ResolvedMonupOptions } from '@monup/options';
 import { publishPackages } from '@monup/release';
 import { detectPackages } from '@monup/workspace';
@@ -25,6 +27,26 @@ export async function handleRelease(
 	if (packages.length === 0) {
 		logger.error('No packages found in workspace');
 		return;
+	}
+
+	if (options.isCI) {
+		const workspaceRoot = packages[0]?.root ?? process.cwd();
+		const workingTreeStatus = await getWorkingTreeStatus(workspaceRoot);
+		if (workingTreeStatus.isClean) {
+			logger.debug('Git working tree is clean before release', {
+				root: workspaceRoot,
+				branch: workingTreeStatus.branch,
+			});
+		}
+		else {
+			logger.error('Release blocked by unclean git working tree', {
+				root: workspaceRoot,
+				branch: workingTreeStatus.branch,
+				changeCount: workingTreeStatus.changes.length,
+				changes: workingTreeStatus.changes.map((change: WorkingTreeChange) => change.raw),
+			});
+			throw new Error('Release requires a clean git working tree');
+		}
 	}
 
 	await publishPackages(

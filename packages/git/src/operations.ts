@@ -1,6 +1,7 @@
 /**
  * Git operations: commit, push, tag with signing support
  */
+import { cwd } from 'node:process';
 import { normalizePathForComparison } from '@monup/utils';
 import { logger } from './logger.ts';
 import { spawnGit } from './spawn.ts';
@@ -54,6 +55,79 @@ export async function pushToRemote(branch?: string, remote = 'origin', cwd?: str
 
 	await spawnGit(args, { cwd, stdio: 'inherit' });
 	logger.debug('Push completed successfully');
+}
+
+export interface WorkingTreeChange {
+	indexStatus: string;
+	workingTreeStatus: string;
+	path: string;
+	raw: string;
+}
+
+export interface WorkingTreeStatus {
+	branch?: string;
+	changes: WorkingTreeChange[];
+	isClean: boolean;
+}
+
+/** Parses a porcelain git status line into structured change data. */
+function parseWorkingTreeChange(line: string): WorkingTreeChange {
+	const statusCode = line.slice(0, 2);
+	const path = line.slice(3).trim();
+	return {
+		indexStatus: statusCode[0] ?? ' ',
+		workingTreeStatus: statusCode[1] ?? ' ',
+		path,
+		raw: line,
+	};
+}
+
+/** Gets the current working tree status for diagnostics and validation. */
+export async function getWorkingTreeStatus(root: string = cwd()): Promise<WorkingTreeStatus> {
+	const { stdout } = await spawnGit(
+		['status', '--porcelain=v1', '--branch', '--untracked-files=all'],
+		{ cwd: root, stdio: 'pipe' },
+	);
+	const lines = stdout.split(/\r?\n/).filter((line) => line.length > 0);
+	let branch: string | undefined;
+
+	if (lines[0]?.startsWith('## ')) {
+		branch = lines.shift()?.slice(3).trim();
+	}
+
+	const changes = lines.map(parseWorkingTreeChange);
+	logger.debug('Collected git working tree status', {
+		root,
+		branch,
+		changeCount: changes.length,
+	});
+	return {
+		branch,
+		changes,
+		isClean: changes.length === 0,
+	};
+}
+
+/** Throws when the git working tree contains tracked or untracked changes. */
+export async function assertCleanWorkingTree(root: string = cwd()): Promise<void> {
+	const workingTreeStatus = await getWorkingTreeStatus(root);
+	if (workingTreeStatus.isClean) {
+		return;
+	}
+
+	logger.error('Git working tree is not clean', {
+		root,
+		branch: workingTreeStatus.branch,
+		changeCount: workingTreeStatus.changes.length,
+		changes: workingTreeStatus.changes.map((change) => change.raw),
+	});
+
+	const preview = workingTreeStatus.changes
+		.slice(0, 10)
+		.map((change) => change.raw)
+		.join(', ');
+	const suffix = workingTreeStatus.changes.length > 10 ? ', ...' : '';
+	throw new Error(`Git working tree is not clean: ${preview}${suffix}`);
 }
 
 /** Returns true if the given tag ref exists. */

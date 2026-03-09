@@ -8,6 +8,7 @@ import { handleRelease } from '../src/commands/release.ts';
 const {
 	getCommitsMock,
 	getFirstCommitMock,
+	getWorkingTreeStatusMock,
 	runChangelogMock,
 	createReleasesForPackagesMock,
 	publishPackagesMock,
@@ -18,6 +19,11 @@ const {
 } = vi.hoisted(() => ({
 	getCommitsMock: vi.fn(async() => []),
 	getFirstCommitMock: vi.fn(async() => 'first-hash'),
+	getWorkingTreeStatusMock: vi.fn(async() => ({
+		branch: 'main',
+		changes: [],
+		isClean: true,
+	})),
 	runChangelogMock: vi.fn(async() => undefined),
 	createReleasesForPackagesMock: vi.fn(async() => undefined),
 	publishPackagesMock: vi.fn(async() => undefined),
@@ -37,6 +43,7 @@ vi.mock('@monup/git', async() => {
 		...actual,
 		getCommits: getCommitsMock,
 		getFirstCommit: getFirstCommitMock,
+		getWorkingTreeStatus: getWorkingTreeStatusMock,
 	};
 });
 
@@ -147,6 +154,12 @@ describe('command delegation', () => {
 	beforeEach(() => {
 		getCommitsMock.mockClear();
 		getFirstCommitMock.mockClear();
+		getWorkingTreeStatusMock.mockClear();
+		getWorkingTreeStatusMock.mockResolvedValue({
+			branch: 'main',
+			changes: [],
+			isClean: true,
+		});
 		runChangelogMock.mockClear();
 		createReleasesForPackagesMock.mockClear();
 		publishPackagesMock.mockClear();
@@ -205,6 +218,24 @@ describe('command delegation', () => {
 
 	it('delegates release command to publishPackages', async() => {
 		await handleRelease(options, true);
+		expect(getWorkingTreeStatusMock).not.toHaveBeenCalled();
 		expect(publishPackagesMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('checks git working tree in CI before publishing', async() => {
+		await handleRelease({ ...options, isCI: true }, false);
+		expect(getWorkingTreeStatusMock).toHaveBeenCalledWith('/workspace');
+		expect(publishPackagesMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('blocks CI release command when git working tree is dirty', async() => {
+		getWorkingTreeStatusMock.mockResolvedValueOnce({
+			branch: 'main',
+			changes: [{ indexStatus: 'M', workingTreeStatus: ' ', path: 'dist/index.mjs', raw: 'M  dist/index.mjs' }],
+			isClean: false,
+		});
+
+		await expect(handleRelease({ ...options, isCI: true }, false)).rejects.toThrow('Release requires a clean git working tree');
+		expect(publishPackagesMock).not.toHaveBeenCalled();
 	});
 });

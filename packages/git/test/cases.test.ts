@@ -7,7 +7,7 @@
 import { tmpdir } from 'node:os';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { $, cd, fs, path } from 'zx';
-import { createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastTag, getPackageTagHistory, isPrerelease } from '../src/index.ts';
+import { assertCleanWorkingTree, createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastTag, getPackageTagHistory, getWorkingTreeStatus, isPrerelease } from '../src/index.ts';
 import { mockPackages } from './mock.ts';
 
 describe('git package - shell command test cases', () => {
@@ -86,6 +86,31 @@ describe('git package - shell command test cases', () => {
 		const branch = await getCurrentBranch(testRepoDir);
 		expect(typeof branch).toBe('string');
 		expect(branch.length).toBeGreaterThan(0);
+	});
+
+	it('should report a clean working tree', async() => {
+		const status = await getWorkingTreeStatus(testRepoDir);
+		expect(status.isClean).toBe(true);
+		expect(status.changes).toHaveLength(0);
+	});
+
+	it('should report dirty working tree changes', async() => {
+		await fs.writeFile(path.join(testRepoDir, 'README.md'), '# Test Repo Updated\n', 'utf-8');
+
+		const status = await getWorkingTreeStatus(testRepoDir);
+
+		expect(status.isClean).toBe(false);
+		expect(status.changes.some((change) => change.path === 'README.md')).toBe(true);
+
+		await $({ cwd: testRepoDir })`git checkout -- README.md`.quiet();
+	});
+
+	it('should throw when working tree is dirty', async() => {
+		await fs.writeFile(path.join(testRepoDir, 'README.md'), '# Test Repo Dirty\n', 'utf-8');
+
+		await expect(assertCleanWorkingTree(testRepoDir)).rejects.toThrow('Git working tree is not clean');
+
+		await $({ cwd: testRepoDir })`git checkout -- README.md`.quiet();
 	});
 
 	it('should get last tag with default filter', async() => {
