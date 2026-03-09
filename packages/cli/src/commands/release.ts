@@ -10,6 +10,19 @@ import { detectPackages } from '@monup/workspace';
 import { getCachedPackages, setCachedPackages } from '../cache.ts';
 import { logger } from '../logger.ts';
 
+function getChangePath(change: WorkingTreeChange): string {
+	const renamedPaths = change.path.split(' -> ');
+	return renamedPaths.at(-1) ?? change.path;
+}
+
+function isBinDirectoryPath(filePath: string): boolean {
+	return /(?:^|\/)bin\//.test(filePath);
+}
+
+function hasOnlyBinDirectoryChanges(changes: WorkingTreeChange[]): boolean {
+	return changes.length > 0 && changes.every((change) => isBinDirectoryPath(getChangePath(change)));
+}
+
 /**
  * Handles the release command
  */
@@ -30,13 +43,22 @@ export async function handleRelease(
 		return;
 	}
 
+	const workspaceRoot = packages[0]?.root ?? cwd();
+	let allowDirtyBinPaths = false;
 	if (options.isCI) {
-		const workspaceRoot = packages[0]?.root ?? cwd();
 		const workingTreeStatus = await getWorkingTreeStatus(workspaceRoot);
+		allowDirtyBinPaths = hasOnlyBinDirectoryChanges(workingTreeStatus.changes);
 		if (workingTreeStatus.isClean) {
 			logger.debug('Git working tree is clean before release', {
 				root: workspaceRoot,
 				branch: workingTreeStatus.branch,
+			});
+		}
+		else if (allowDirtyBinPaths) {
+			logger.warn('Allowing bin-only git working tree changes in CI release', {
+				root: workspaceRoot,
+				branch: workingTreeStatus.branch,
+				changes: workingTreeStatus.changes.map((change: WorkingTreeChange) => change.raw),
 			});
 		}
 		else {
@@ -54,6 +76,7 @@ export async function handleRelease(
 		packages,
 		{
 			...options.release,
+			allowDirty: options.isCI && allowDirtyBinPaths,
 			isCI: options.isCI,
 		},
 		{

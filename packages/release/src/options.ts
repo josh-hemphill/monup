@@ -48,6 +48,12 @@ export interface ReleaseOptions {
 	 * @default []
 	 */
 	publishArgs?: string[];
+
+	/**
+	 * Allow package-manager-specific dirty tree bypass flags during publish.
+	 * @default false
+	 */
+	allowDirty?: boolean;
 }
 
 /**
@@ -97,6 +103,7 @@ export const defaultReleaseOptions: ResolvedReleaseOptions = {
 	excludedCommands: [],
 	strict: true,
 	detectionOrder: defaultDetectionOrder,
+	allowDirty: false,
 	publishArgs: [],
 };
 

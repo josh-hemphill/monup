@@ -131,6 +131,7 @@ const options: ResolvedMonupOptions = {
 	},
 	release: {
 		dryRun: 'auto',
+		allowDirty: false,
 		commandPriority: ['pnpm', 'yarn', 'npm', 'deno'],
 		excludedCommands: [],
 		strict: true,
@@ -220,15 +221,41 @@ describe('command delegation', () => {
 		await handleRelease(options, true);
 		expect(getWorkingTreeStatusMock).not.toHaveBeenCalled();
 		expect(publishPackagesMock).toHaveBeenCalledTimes(1);
+		expect(publishPackagesMock).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.objectContaining({ allowDirty: false }),
+			expect.any(Object),
+		);
 	});
 
 	it('checks git working tree in CI before publishing', async() => {
 		await handleRelease({ ...options, isCI: true }, false);
 		expect(getWorkingTreeStatusMock).toHaveBeenCalledWith('/workspace');
 		expect(publishPackagesMock).toHaveBeenCalledTimes(1);
+		expect(publishPackagesMock).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.objectContaining({ allowDirty: false }),
+			expect.any(Object),
+		);
 	});
 
-	it('blocks CI release command when git working tree is dirty', async() => {
+	it('allows bin-only git working tree changes in CI', async() => {
+		getWorkingTreeStatusMock.mockResolvedValueOnce({
+			branch: 'main',
+			changes: [{ indexStatus: 'M', workingTreeStatus: ' ', path: 'packages/cli/bin/monup.mjs', raw: 'M  packages/cli/bin/monup.mjs' }],
+			isClean: false,
+		});
+
+		await handleRelease({ ...options, isCI: true }, false);
+
+		expect(publishPackagesMock).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.objectContaining({ allowDirty: true }),
+			expect.any(Object),
+		);
+	});
+
+	it('blocks CI release command when non-bin files are dirty', async() => {
 		getWorkingTreeStatusMock.mockResolvedValueOnce({
 			branch: 'main',
 			changes: [{ indexStatus: 'M', workingTreeStatus: ' ', path: 'dist/index.mjs', raw: 'M  dist/index.mjs' }],

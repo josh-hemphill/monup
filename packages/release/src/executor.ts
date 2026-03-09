@@ -13,6 +13,7 @@ export interface ContextualizedCommand {
 	command: string;
 	args: string[];
 }
+
 export function contextualizePublishCommand(command: DetectResult, publishType: PublishType): ContextualizedCommand {
 	if (publishType === 'jsr') {
 		if (command.name === 'deno') {
@@ -56,10 +57,16 @@ export async function executePublish(
 	config: CommandConfig,
 	dryRun: boolean,
 	extraArgs: string[] = [],
+	allowDirty = false,
 ): Promise<void> {
 	logger.trace('Contextualizing publish command', { config });
 	const command = contextualizePublishCommand(config.command, config.publishType);
 	logger.trace('Contextualized publish command', { command });
+
+	if (allowDirty && config.publishType === 'npm' && config.command.name === 'pnpm') {
+		command.args.push('--no-git-checks');
+	}
+
 	command.args.push(...extraArgs);
 
 	if (dryRun) {

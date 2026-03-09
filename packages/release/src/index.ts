@@ -30,7 +30,7 @@ export async function publish(
 
 	// Actual publish
 	const config = await detectPackageManager(pkg, resolvedOptions);
-	await executePublish(pkg.path, config, shouldDryRun, resolvedOptions.publishArgs);
+	await executePublish(pkg.path, config, shouldDryRun, resolvedOptions.publishArgs, resolvedOptions.allowDirty);
 }
 
 export interface PublishPackagesContext {

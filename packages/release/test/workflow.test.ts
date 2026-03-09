@@ -38,13 +38,13 @@ describe('publishPackages', () => {
 	it('publishes all packages with merged context', async() => {
 		await publishPackages(
 			packages,
-			{ dryRun: 'auto', isCI: false },
+			{ dryRun: 'auto', isCI: false, allowDirty: true },
 			{ isCI: true, dryRun: true },
 		);
 
 		expect(detectPackageManagerMock).toHaveBeenCalledTimes(2);
 		expect(executePublishMock).toHaveBeenCalledTimes(2);
-		expect(executePublishMock).toHaveBeenNthCalledWith(1, '/workspace/pkg1', expect.any(Object), true, []);
-		expect(executePublishMock).toHaveBeenNthCalledWith(2, '/workspace/pkg2', expect.any(Object), true, []);
+		expect(executePublishMock).toHaveBeenNthCalledWith(1, '/workspace/pkg1', expect.any(Object), true, [], true);
+		expect(executePublishMock).toHaveBeenNthCalledWith(2, '/workspace/pkg2', expect.any(Object), true, [], true);
 	});
 });

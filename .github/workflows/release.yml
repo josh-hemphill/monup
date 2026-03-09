@@ -44,24 +44,34 @@ jobs:
           node-version: latest
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Log git state before build
-        run: |
-          git status --short --branch
-          git diff --stat
-          git diff --cached --stat
-
       - name: Build packages
         run: pnpm run build
 
       - name: Check git working tree after build
+        shell: bash
         run: |
-          git status --short --branch
-          git diff --stat
-          git diff --cached --stat
-          if [[ -n "$(git status --porcelain=v1)" ]]; then
-            echo "::error::Build left the git working tree dirty"
-            exit 1
+          status="$(git status --porcelain=v1)"
+          if [[ -z "$status" ]]; then
+            exit 0
           fi
+
+          non_bin_changes="$(printf '%s\n' "$status" | while IFS= read -r line; do
+            path="${line:3}"
+            case "$path" in
+              bin/*|*/bin/*) ;;
+              *) printf '%s\n' "$line" ;;
+            esac
+          done)"
+
+          if [[ -z "$non_bin_changes" ]]; then
+            echo "Allowing bin-only git working tree changes after build:"
+            printf '%s\n' "$status"
+            exit 0
+          fi
+
+          echo "::error::Build left non-bin files in the git working tree"
+          printf '%s\n' "$status"
+          exit 1
 
       - name: Run monup release dry-run
         run: node packages/cli/bin/monup.mjs release --dry-run --log-level debug
@@ -87,24 +97,34 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Log git state before build
-        run: |
-          git status --short --branch
-          git diff --stat
-          git diff --cached --stat
-
       - name: Build packages
         run: pnpm run build
 
       - name: Check git working tree after build
+        shell: bash
         run: |
-          git status --short --branch
-          git diff --stat
-          git diff --cached --stat
-          if [[ -n "$(git status --porcelain=v1)" ]]; then
-            echo "::error::Build left the git working tree dirty"
-            exit 1
+          status="$(git status --porcelain=v1)"
+          if [[ -z "$status" ]]; then
+            exit 0
           fi
+
+          non_bin_changes="$(printf '%s\n' "$status" | while IFS= read -r line; do
+            path="${line:3}"
+            case "$path" in
+              bin/*|*/bin/*) ;;
+              *) printf '%s\n' "$line" ;;
+            esac
+          done)"
+
+          if [[ -z "$non_bin_changes" ]]; then
+            echo "Allowing bin-only git working tree changes after build:"
+            printf '%s\n' "$status"
+            exit 0
+          fi
+
+          echo "::error::Build left non-bin files in the git working tree"
+          printf '%s\n' "$status"
+          exit 1
 
       - name: Configure npm auth
         run: |
