@@ -1,5 +1,18 @@
 # Changelog
 
+<!-- monup:version:0.2.1:@monup/changelog:start -->
+## @monup/changelog@0.2.1 - 2026-03-09
+
+### 🐞 Bug Fixes
+
+#### changelog
+
+- Changelog updates relative to multi tags ([c00abd0](https://github.com/josh-hemphill/monup/commit/c00abd0c2847e17989c102c8f6713d1da39f6920))
+- Changelog regeneration and formatting ([6f61e10](https://github.com/josh-hemphill/monup/commit/6f61e10657bedfe4819f63e845e9ff63346271a3))
+
+
+<!-- monup:version:0.2.1:@monup/changelog:end -->
+
 <!-- monup:version:0.2.0:@monup/changelog:start -->
 ## @monup/changelog@0.2.0 - 2026-03-09
 

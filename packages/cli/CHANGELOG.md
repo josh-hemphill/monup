@@ -1,5 +1,34 @@
 # Changelog
 
+<!-- monup:version:0.3.0:@monup/cli:start -->
+## @monup/cli@0.3.0 - 2026-03-09
+
+### 🚀 Features
+
+#### cli
+
+- :sparkles: Add JSR prep cli tool ([09b2116](https://github.com/josh-hemphill/monup/commit/09b21160a190967f6885e4f43a8074b533863f24))
+
+
+<!-- monup:version:0.3.0:@monup/cli:end -->
+
+<!-- monup:version:0.2.1:@monup/cli:start -->
+## @monup/cli@0.2.1 - 2026-03-09
+
+### 🐞 Bug Fixes
+
+#### Unscoped
+
+- Allow dirty tree for +x bin files ([5c25512](https://github.com/josh-hemphill/monup/commit/5c255127f06331a0e2715cbe21675967651e315e))
+- Publish command dirty git tree checks ([42fe9e5](https://github.com/josh-hemphill/monup/commit/42fe9e5bc32018a9a18285b733d33d0402ac8e22))
+
+#### changelog
+
+- Changelog regeneration and formatting ([6f61e10](https://github.com/josh-hemphill/monup/commit/6f61e10657bedfe4819f63e845e9ff63346271a3))
+
+
+<!-- monup:version:0.2.1:@monup/cli:end -->
+
 <!-- monup:version:0.2.0:@monup/cli:start -->
 ## @monup/cli@0.2.0 - 2026-03-09
 

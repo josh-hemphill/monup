@@ -1,5 +1,44 @@
 # Changelog
 
+<!-- monup:version:0.3.0:@monup/release:start -->
+## @monup/release@0.3.0 - 2026-03-09
+
+### 🚀 Features
+
+#### cli
+
+- :sparkles: Add JSR prep cli tool ([09b2116](https://github.com/josh-hemphill/monup/commit/09b21160a190967f6885e4f43a8074b533863f24))
+
+
+### 🐞 Bug Fixes
+
+#### release
+
+- Jsr npm compat cmd takes deno dirty args ([9d419b7](https://github.com/josh-hemphill/monup/commit/9d419b72f70371201901e672edb3db1f9ff2e208))
+- PublishType is important in allowDirty [skip ci] ([308bcc8](https://github.com/josh-hemphill/monup/commit/308bcc8af943df9c144f4361f71063b0645a3eb3))
+- AllowDirty does not depend on publishType [skip ci] ([e5d5a11](https://github.com/josh-hemphill/monup/commit/e5d5a11b94ab3382d1b1e6c2a121e8bd850b23ce))
+- Jsr pass through allow-dirty flag ([a261590](https://github.com/josh-hemphill/monup/commit/a261590703fa134c5ec13e753d70d8bfddf83976))
+
+
+<!-- monup:version:0.3.0:@monup/release:end -->
+
+<!-- monup:version:0.2.2:@monup/release:start -->
+## @monup/release@0.2.2 - 2026-03-09
+
+### 🐞 Bug Fixes
+
+#### release
+
+- Publish using all manifests ([f5dd6d3](https://github.com/josh-hemphill/monup/commit/f5dd6d3f51ddde4074e99a782ba68994138cedaf))
+
+#### Unscoped
+
+- Allow dirty tree for +x bin files ([5c25512](https://github.com/josh-hemphill/monup/commit/5c255127f06331a0e2715cbe21675967651e315e))
+- Publish command dirty git tree checks ([42fe9e5](https://github.com/josh-hemphill/monup/commit/42fe9e5bc32018a9a18285b733d33d0402ac8e22))
+
+
+<!-- monup:version:0.2.2:@monup/release:end -->
+
 <!-- monup:version:0.2.1:@monup/release:start -->
 ## @monup/release@0.2.1 - 2026-03-09
 

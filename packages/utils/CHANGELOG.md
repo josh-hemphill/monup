@@ -1,5 +1,17 @@
 # Changelog
 
+<!-- monup:version:0.3.0:@monup/utils:start -->
+## @monup/utils@0.3.0 - 2026-03-09
+
+### 🚀 Features
+
+#### cli
+
+- :sparkles: Add JSR prep cli tool ([09b2116](https://github.com/josh-hemphill/monup/commit/09b21160a190967f6885e4f43a8074b533863f24))
+
+
+<!-- monup:version:0.3.0:@monup/utils:end -->
+
 <!-- monup:version:0.2.0:@monup/utils:start -->
 ## @monup/utils@0.2.0 - 2026-03-09
 

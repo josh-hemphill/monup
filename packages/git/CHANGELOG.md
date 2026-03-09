@@ -1,5 +1,21 @@
 # Changelog
 
+<!-- monup:version:0.2.2:@monup/git:start -->
+## @monup/git@0.2.2 - 2026-03-09
+
+### 🐞 Bug Fixes
+
+#### Unscoped
+
+- Publish command dirty git tree checks ([42fe9e5](https://github.com/josh-hemphill/monup/commit/42fe9e5bc32018a9a18285b733d33d0402ac8e22))
+
+#### changelog
+
+- Changelog regeneration and formatting ([6f61e10](https://github.com/josh-hemphill/monup/commit/6f61e10657bedfe4819f63e845e9ff63346271a3))
+
+
+<!-- monup:version:0.2.2:@monup/git:end -->
+
 <!-- monup:version:0.2.1:@monup/git:start -->
 ## @monup/git@0.2.1 - 2026-03-09
 
