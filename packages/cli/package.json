@@ -1,7 +1,7 @@
 {
   "name": "@monup/cli",
   "type": "module",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "exports": {
     "types": "./dist/index.d.mts",
@@ -35,7 +35,7 @@
     "@monup/workspace": "workspace:*",
     "cac": "catalog:cli",
     "loglevel": "catalog:logging",
-	"zx": "catalog:cli"
+    "zx": "catalog:cli"
   },
   "devDependencies": {
     "obuild": "catalog:build"
