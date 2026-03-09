@@ -39,6 +39,22 @@ export interface PublishPackagesContext {
 }
 
 /**
+ * Creates one publish target per manifest file for a logical package.
+ */
+function getPublishTargets(pkg: PackageInfo): PackageInfo[] {
+	const manifestPaths = pkg.packageFiles ?? (typeof pkg.packageFile === 'string' ? [pkg.packageFile] : []);
+	const uniqueManifestPaths = [...new Set(manifestPaths)];
+	if (uniqueManifestPaths.length === 0) {
+		return [pkg];
+	}
+
+	return uniqueManifestPaths.map((packageFile) => ({
+		...pkg,
+		packageFile,
+	}));
+}
+
+/**
  * Publishes all packages with shared release context.
  */
 export async function publishPackages(
@@ -47,16 +63,18 @@ export async function publishPackages(
 	context: PublishPackagesContext = {},
 ): Promise<void> {
 	for (const pkg of packages) {
-		const mergedOptions: ReleaseOptionsWithDeps = {
-			...options,
-			isCI: context.isCI ?? options.isCI,
-		};
+		for (const publishTarget of getPublishTargets(pkg)) {
+			const mergedOptions: ReleaseOptionsWithDeps = {
+				...options,
+				isCI: context.isCI ?? options.isCI,
+			};
 
-		if (context.dryRun === true) {
-			mergedOptions.dryRun = true;
+			if (context.dryRun === true) {
+				mergedOptions.dryRun = true;
+			}
+
+			await publish(publishTarget, mergedOptions);
 		}
-
-		await publish(pkg, mergedOptions);
 	}
 }
 
