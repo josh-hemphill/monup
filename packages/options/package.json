@@ -10,6 +10,9 @@
 	},
 	"main": "dist/index.mjs",
 	"types": "dist/index.d.mts",
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "node build.config.ts && node build.schema.ts",
 		"test": "vitest run",
