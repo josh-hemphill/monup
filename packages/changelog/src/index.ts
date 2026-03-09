@@ -8,7 +8,7 @@ import type { ChangelogOptions } from './options.ts';
  */
 import { dirname, resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { filterCommitsByPackage, getCommits, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getPackageTagHistory } from '@monup/git';
+import { filterCommitsByPackage, getCommits, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastPackageTag, getLastTag, getPackageTagHistory } from '@monup/git';
 import { sortVersionsDescending } from '@monup/utils';
 import { getPreviousVersion } from '@monup/version';
 import { fs } from 'zx';
@@ -70,7 +70,7 @@ async function buildChangelogEntry(
 	if (sections.length === 0) {
 		const emptyVersionText = optsForFormatter.titles?.emptyVersion ?? 'No significant changes';
 		if (emptyVersionText.length > 0) {
-			sections.push(`- ${emptyVersionText}`, '');
+			sections.push(`${emptyVersionText}`, '');
 		}
 	}
 	const markers = createVersionMarkers(version, packageName);
@@ -219,6 +219,76 @@ async function buildPackageBootstrapBlocks(
 	}
 
 	return blocksByVersion;
+}
+
+/** Synchronizes a changelog to finalized tagged version blocks only. */
+async function syncChangelogToTaggedBlocks(
+	packageName: string,
+	changelogPath: string,
+	packages: PackageInfo[],
+	options: ChangelogRunOptions,
+	pkg?: PackageInfo,
+): Promise<boolean> {
+	const blocksByVersion = options.git.tagStrategy === 'package' && typeof pkg === 'object'
+		? await buildPackageBootstrapBlocks(pkg, options.changelog, options.root, packages)
+		: await buildGlobalBootstrapBlocks(
+			packageName,
+			options.changelog,
+			options.root,
+			packages,
+			options.git.tagTemplate,
+			pkg,
+		);
+	if (blocksByVersion.size === 0) {
+		return false;
+	}
+
+	await writeChangelogFromBlocks(changelogPath, blocksByVersion);
+	logger.debug('Synchronized changelog to tagged blocks', {
+		package: packageName,
+		versionCount: blocksByVersion.size,
+	});
+	return true;
+}
+
+/** Gets commits for the latest changelog update interval instead of full history. */
+async function getLatestIntervalCommits(
+	pkg: PackageInfo | undefined,
+	packages: PackageInfo[],
+	fallbackCommits: ParsedCommit[],
+	options: ChangelogRunOptions,
+): Promise<ParsedCommit[]> {
+	try {
+		if (typeof pkg === 'object') {
+			if (options.git.tagStrategy === 'package') {
+				const lastPackageTag = await getLastPackageTag(pkg.name, options.root);
+				if (typeof lastPackageTag === 'string') {
+					return await getCommits(lastPackageTag, 'HEAD', [pkg], options.root);
+				}
+			}
+			else {
+				const lastTag = await getLastTag(undefined, options.git.tagTemplate, undefined, options.root);
+				if (typeof lastTag === 'string') {
+					const commitsSinceTag = await getCommits(lastTag, 'HEAD', packages, options.root);
+					return selectCommitsForPackage(commitsSinceTag, pkg, packages);
+				}
+			}
+		}
+		else {
+			const lastTag = await getLastTag(undefined, options.git.tagTemplate, undefined, options.root);
+			if (typeof lastTag === 'string') {
+				return await getCommits(lastTag, 'HEAD', packages, options.root);
+			}
+		}
+	}
+	catch(error: unknown) {
+		logger.debug('Failed to resolve latest interval commits, falling back to provided commits', {
+			package: pkg?.name,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
+	return fallbackCommits;
 }
 
 /**
@@ -376,16 +446,31 @@ export async function runChangelog(
 				});
 			}
 		}
+		else {
+			try {
+				const synced = await syncChangelogToTaggedBlocks('root', changelogPath, packages, options);
+				if (synced) {
+					return;
+				}
+			}
+			catch(error: unknown) {
+				logger.debug('Skipping root tagged sync', {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
 
-		let version: string | undefined;
+		const latestIntervalCommits = await getLatestIntervalCommits(undefined, packages, commits, options);
+		let existingVersion: string | undefined;
 		try {
-			version = await getLatestVersionFromChangelog(undefined, options.changelog, changelogPath);
+			existingVersion = await getLatestVersionFromChangelog(undefined, options.changelog, changelogPath);
 		}
 		catch(error: unknown) {
 			logger.debug('Failed to get version from changelog', {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
+		let version = existingVersion;
 
 		if (typeof version !== 'string' && packages.length > 0 && typeof packages[0]?.packageFile === 'string') {
 			try {
@@ -406,7 +491,11 @@ export async function runChangelog(
 		}
 
 		const finalVersion = resolveVersionWithFallback(version, options.changelog, 'root');
-		const generatedBlock = await buildChangelogEntry(finalVersion, commits, 'root', options.changelog);
+		if (latestIntervalCommits.length === 0 && existingVersion === finalVersion) {
+			logger.info('No new commits for latest root changelog version, skipping update');
+			return;
+		}
+		const generatedBlock = await buildChangelogEntry(finalVersion, latestIntervalCommits, 'root', options.changelog);
 		await rebuildChangelogFile(changelogPath, 'root', finalVersion, generatedBlock);
 		return;
 	}
@@ -443,9 +532,34 @@ export async function runChangelog(
 				});
 			}
 		}
+		else {
+			try {
+				const synced = await syncChangelogToTaggedBlocks(pkg.name, changelogPath, packages, options, pkg);
+				if (synced) {
+					continue;
+				}
+			}
+			catch(error: unknown) {
+				logger.debug('Skipping package tagged sync', {
+					package: pkg.name,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
 		if (packageCommits.length === 0) {
 			logger.info(`No commits for ${pkg.name}, skipping changelog`);
 			continue;
+		}
+		const latestIntervalCommits = await getLatestIntervalCommits(pkg, packages, packageCommits, options);
+		let existingVersion: string | undefined;
+		try {
+			existingVersion = await getLatestVersionFromChangelog(pkg.name, options.changelog, changelogPath);
+		}
+		catch(error: unknown) {
+			logger.debug('Failed to get existing version from changelog', {
+				package: pkg.name,
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 		let version: string | undefined;
 		try {
@@ -479,7 +593,11 @@ export async function runChangelog(
 		}
 
 		const finalVersion = resolveVersionWithFallback(version, options.changelog, pkg.name);
-		const generatedBlock = await buildChangelogEntry(finalVersion, packageCommits, pkg.name, options.changelog);
+		if (latestIntervalCommits.length === 0 && existingVersion === finalVersion) {
+			logger.info(`No new commits for latest changelog version of ${pkg.name}, skipping update`);
+			continue;
+		}
+		const generatedBlock = await buildChangelogEntry(finalVersion, latestIntervalCommits, pkg.name, options.changelog);
 		await rebuildChangelogFile(changelogPath, pkg.name, finalVersion, generatedBlock);
 	}
 }

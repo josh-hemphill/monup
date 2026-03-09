@@ -1,4 +1,5 @@
 import type { PackageInfo } from '@monup/workspace';
+import { getCommits, getFirstCommit } from '@monup/git';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -276,5 +277,105 @@ describe('runChangelog', () => {
 		expect(pkg2Changelog).toContain('## pkg2@1.0.0');
 		expect(pkg2Changelog).toContain('Pkg2 fix');
 		expect(pkg2Changelog).not.toContain('Pkg1 fix');
+	});
+
+	it('uses finalized tagged blocks only on subsequent runs', async() => {
+		const repoRoot = join(testDir, 'repo-rerun');
+		const pkg1Dir = join(repoRoot, 'packages', 'pkg1');
+		await mkdir(pkg1Dir, { recursive: true });
+		await writeFile(join(pkg1Dir, 'package.json'), JSON.stringify({ name: 'pkg1', version: '1.1.0' }, null, 2), 'utf-8');
+
+		const originalCwd = process.cwd();
+		try {
+			cd(repoRoot);
+			await $`git init`.quiet();
+			await $`git config user.name "Test User"`.quiet();
+			await $`git config user.email "test@example.com"`.quiet();
+			await $`git config commit.gpgsign false`.quiet();
+
+			await $`git add .`.quiet();
+			await $`git commit -m "chore: initial package"`.quiet();
+			await $`git tag pkg1@1.0.0`.quiet();
+
+			await writeFile(join(pkg1Dir, 'feature.ts'), 'export const feature = true;\n', 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "feat: pkg1 previous feature"`.quiet();
+			await $`git tag pkg1@1.1.0`.quiet();
+		}
+		finally {
+			cd(originalCwd);
+		}
+
+		const repoPackages: PackageInfo[] = [
+			{ name: 'pkg1', path: pkg1Dir, root: repoRoot, packageFile: join(pkg1Dir, 'package.json') },
+		];
+
+		await runChangelog(
+			{
+				changelog: {
+					...defaultChangelogOptions,
+					strategy: 'per-package',
+					location: 'CHANGELOG.md',
+				},
+				git: {
+					tagStrategy: 'package',
+					tagTemplate: 'v%s',
+				},
+				root: repoRoot,
+			},
+			repoPackages,
+			[],
+		);
+
+		try {
+			cd(repoRoot);
+			await writeFile(join(pkg1Dir, 'fix.ts'), 'export const fixed = true;\n', 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "fix: pkg1 latest fix"`.quiet();
+			await writeFile(join(pkg1Dir, 'package.json'), JSON.stringify({ name: 'pkg1', version: '1.2.0' }, null, 2), 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "chore: release 1.2.0"`.quiet();
+			await $`git tag pkg1@1.2.0`.quiet();
+			await writeFile(join(pkg1Dir, 'post-tag.ts'), 'export const after = true;\n', 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "fix: pkg1 after tag"`.quiet();
+		}
+		finally {
+			cd(originalCwd);
+		}
+
+		const firstCommit = await getFirstCommit(repoRoot);
+		const allCommits = await getCommits(firstCommit, 'HEAD', repoPackages, repoRoot);
+		await runChangelog(
+			{
+				changelog: {
+					...defaultChangelogOptions,
+					strategy: 'per-package',
+					location: 'CHANGELOG.md',
+				},
+				git: {
+					tagStrategy: 'package',
+					tagTemplate: 'v%s',
+				},
+				root: repoRoot,
+			},
+			repoPackages,
+			allCommits,
+		);
+
+		const pkg1Changelog = await readFile(join(pkg1Dir, 'CHANGELOG.md'), 'utf-8');
+		expect(pkg1Changelog).toContain('## pkg1@1.2.0');
+		expect(pkg1Changelog).toContain('Pkg1 latest fix');
+		expect(pkg1Changelog).toContain('## pkg1@1.1.0');
+		expect(pkg1Changelog).toContain('Pkg1 previous feature');
+		expect(pkg1Changelog).not.toContain('Pkg1 after tag');
+		const latestBlockStart = pkg1Changelog.indexOf('## pkg1@1.2.0');
+		const previousBlockStart = pkg1Changelog.indexOf('## pkg1@1.1.0');
+		expect(latestBlockStart).toBeGreaterThanOrEqual(0);
+		expect(previousBlockStart).toBeGreaterThan(latestBlockStart);
+		const latestBlock = pkg1Changelog.slice(latestBlockStart, previousBlockStart);
+		expect(latestBlock).toContain('Pkg1 latest fix');
+		expect(latestBlock).not.toContain('Pkg1 previous feature');
+		expect(latestBlock).not.toContain('Pkg1 after tag');
 	});
 });
