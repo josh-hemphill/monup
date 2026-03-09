@@ -1,9 +1,10 @@
+import type { WorkingTreeChange } from '@monup/git';
+import type { ResolvedMonupOptions } from '@monup/options';
 /**
  * Release command handler
  */
-import type { WorkingTreeChange } from '@monup/git';
+import { cwd } from 'node:process';
 import { getWorkingTreeStatus } from '@monup/git';
-import type { ResolvedMonupOptions } from '@monup/options';
 import { publishPackages } from '@monup/release';
 import { detectPackages } from '@monup/workspace';
 import { getCachedPackages, setCachedPackages } from '../cache.ts';
@@ -30,7 +31,7 @@ export async function handleRelease(
 	}
 
 	if (options.isCI) {
-		const workspaceRoot = packages[0]?.root ?? process.cwd();
+		const workspaceRoot = packages[0]?.root ?? cwd();
 		const workingTreeStatus = await getWorkingTreeStatus(workspaceRoot);
 		if (workingTreeStatus.isClean) {
 			logger.debug('Git working tree is clean before release', {
