@@ -6,6 +6,7 @@
 	"files.associations": {
 		".all-contributorsrc": "jsonc"
 	},
+	"git.followTagsWhenSync": true,
 	"editor.tabSize": 3,
 	"typescript.enablePromptUseWorkspaceTsdk": true,
 	"html.format.wrapAttributes": "force-expand-multiline",
