@@ -10,8 +10,8 @@ import type { ReleaseOptionsWithDeps } from '../src/options.ts';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultReleaseOptions } from '../src/options.ts';
 import { publish } from '../src/index.ts';
+import { defaultReleaseOptions } from '../src/options.ts';
 
 const { detectPackageManagerMock, executePublishMock } = vi.hoisted(() => ({
 	detectPackageManagerMock: vi.fn(async(pkg: PackageInfo): Promise<CommandConfig> => ({
@@ -82,7 +82,7 @@ describe('release package - shell command test cases', () => {
 			npmPackage.path,
 			expect.objectContaining({
 				publishType: 'npm',
-				command: expect.objectContaining({ name: 'pnpm' }),
+				command: expect.objectContaining({ name: 'pnpm' }) as CommandConfig['command'],
 			}),
 			true,
 			[],
@@ -108,7 +108,7 @@ describe('release package - shell command test cases', () => {
 			jsrPackage.path,
 			expect.objectContaining({
 				publishType: 'jsr',
-				command: expect.objectContaining({ name: 'deno' }),
+				command: expect.objectContaining({ name: 'deno' }) as CommandConfig['command'],
 			}),
 			true,
 			[],
