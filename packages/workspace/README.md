@@ -1,23 +1,31 @@
 # @monup/workspace
 
-Monorepo workspace detection and package management.
+Workspace detection and package metadata for Monup.
 
-## Purpose
+## Workflow Role
 
-Detects packages in pnpm, npm, or Deno workspaces. Supports plugin-based detectors for different workspace types and can treat root as a single package.
+`@monup/workspace` discovers the packages Monup should operate on before versioning, changelog generation, publishing, or release creation.
 
-## Use Case
+## Main Exports
 
-Use when you need to discover packages in a monorepo or single-package repository. Maps package names to paths and package files for workspace-aware operations.
+  - `detectPackages()`: detect packages in pnpm, npm, Deno, or single-package repos.
+  - `getPackageInfo()`: look up one detected package.
+  - `updatePackageVersions()`: write version updates across detected packages.
+  - `registerDetector()`: add custom workspace detectors.
+  - `PackageInfo`: shared package metadata used across Monup packages.
+
+Each logical package has a canonical `packageFile`, and may also expose `packageFiles` when multiple manifests map to the same package path.
 
 ## Example
 
-```typescript
+```ts
 import { detectPackages, getPackageInfo } from '@monup/workspace';
 
-// Detect all packages in workspace
 const packages = await detectPackages();
-
-// Get specific package info
 const pkg = await getPackageInfo('@my/package');
 ```
+
+## Related Packages
+
+  - [`@monup/version`](../version/README.md): updates manifest versions for detected packages.
+  - [`@monup/release`](../release/README.md): publishes one target per manifest when needed.

@@ -1,23 +1,40 @@
 # @monup/release
 
-Package publishing for npm and JSR.
+Package publishing for the Monup release step.
 
-## Purpose
+## Workflow Role
 
-Publishes packages to npm or JSR registries. Supports dry-run validation before actual publication.
+`@monup/release` is the publish stage of the workflow. In the default Monup flow, this is usually the CI step that runs after local `version` and `changelog` work has already been reviewed.
 
-## Use Case
+## Main Exports
 
-Use when you need to publish versioned packages. Automatically detects package type (package.json → npm, jsr.json → JSR) and publishes accordingly.
+  - `publish()`: publish one package manifest.
+  - `publishPackages()`: publish all detected packages with shared context.
+  - `listPublishedVersions()`: inspect already published versions.
+  - `resolveReleaseOptions()`: normalize release options.
+  - `defaultReleaseOptions`: shared release defaults.
+
+One logical package can publish more than once when it has multiple manifest files, because Monup creates one publish target per `packageFile`.
+
+## Notes
+
+  - Publish targets are inferred from the package manifest being handled.
+  - Registry and package-manager handling are resolved internally.
+  - `dryRun` behavior depends on the resolved release options and CI context.
 
 ## Example
 
-```typescript
-import { dryRun, publish } from '@monup/release';
+```ts
+import { publishPackages } from '@monup/release';
 
-// Validate before publishing
-await dryRun(packageInfo, options);
-
-// Publish to registry
-await publish(packageInfo, options);
+await publishPackages(packages, releaseOptions, {
+  dryRun: true,
+  isCI: false,
+});
 ```
+
+## Related Packages
+
+  - [`@monup/workspace`](../workspace/README.md): provides detected packages and manifest paths.
+  - [`@monup/options`](../options/README.md): provides resolved release options.
+  - [`@monup/github`](../github/README.md): usually runs after publishing.

@@ -1,24 +1,43 @@
 # @monup/cli
 
-Command-line interface for the monup toolchain.
+CLI entry point for the Monup workflow.
 
-## Purpose
+## Workflow Role
 
-Provides the main CLI entry point with commands: `version`, `changelog`, `release`, `github`, and `all`. Handles option resolution, log level configuration, and orchestrates the workflow.
+`@monup/cli` is the operator-facing package that ties the workflow together:
 
-## Use Case
+```text
+version -> changelog -> release -> github
+```
 
-Use as the primary interface for running monup operations. Accepts CLI arguments, resolves configuration from files and environment, and delegates to appropriate package handlers.
+The common flow is to run `version` and `changelog` locally, then let CI run `release` and `github`.
+
+## Commands
+
+  - `version`: update package versions from commits.
+  - `changelog`: generate changelog entries from commits.
+  - `release`: publish packages to npm or JSR.
+  - `github`: create GitHub releases.
+  - `all`: run the full workflow in order.
+
+## Important Flags
+
+  - `--log-level <level>`: set the default log level.
+  - `--ci`: force CI mode.
+  - `--set <path=value>`: override config values from the command line.
+  - `version --major|--minor|--patch`: force a bump type.
+  - `release --dry-run`: validate publish steps without publishing.
 
 ## Example
 
 ```bash
-# Update versions based on commits
 monup version
-
-# Generate changelog
 monup changelog
-
-# Run complete workflow
-monup all
+monup release --dry-run --log-level debug
 ```
+
+## Related Packages
+
+  - [`@monup/options`](../options/README.md): config loading and `defineConfig()`.
+  - [`@monup/release`](../release/README.md): package publishing.
+  - [`@monup/github`](../github/README.md): GitHub release creation.

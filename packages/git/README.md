@@ -1,26 +1,31 @@
 # @monup/git
 
-Git operations and conventional commit parsing.
+Git history, tag, and commit parsing utilities for Monup.
 
-## Purpose
+## Workflow Role
 
-Provides git repository operations (fetching commits, tags, branches) and parses conventional commits. Streams git log output to efficiently map commits to packages in monorepos.
+`@monup/git` provides the commit ranges, tag history, tag formatting, and conventional commit parsing used by the version, changelog, and GitHub steps.
 
-## Use Case
+## Main Exports
 
-Use when you need to query git history, parse commit messages, filter commits by affected packages, or perform git operations like creating tags and pushing to remotes.
+  - `getCommits()` and `getCommitsSinceLastTag()`: read commits for workflow decisions.
+  - `getCommitsForPackage()`: select commits relevant to one package.
+  - `getLastTag()`, `getLastPackageTag()`, `getGlobalTagHistory()`, and `getPackageTagHistory()`: work with tags.
+  - `createCommit()`, `createTag()`, `pushToRemote()`, and `getWorkingTreeStatus()`: perform git operations.
+  - `formatTag()`, `parseConventionalCommit()`, and `getGitHubRepo()`: shared helpers for higher-level packages.
 
 ## Example
 
-```typescript
-import { createTag, getCommits, getTags } from '@monup/git';
+```ts
+import { createTag, getCommits, getLastTag } from '@monup/git';
 
-// Get commits since last tag
-const commits = await getCommits('v1.0.0');
+const lastTag = await getLastTag(undefined, 'v%s');
+const commits = await getCommits(lastTag);
 
-// Get all tags
-const tags = await getTags();
-
-// Create a new tag
 await createTag('v1.1.0', 'Release 1.1.0');
 ```
+
+## Related Packages
+
+  - [`@monup/version`](../version/README.md): uses tags and commits to determine bumps.
+  - [`@monup/changelog`](../changelog/README.md): uses git history to build changelog blocks.

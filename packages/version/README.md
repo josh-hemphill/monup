@@ -1,23 +1,33 @@
 # @monup/version
 
-Version calculation and file updates based on commits.
+Version calculation and manifest updates for the first Monup workflow step.
 
-## Purpose
+## Workflow Role
 
-Calculates next version using semantic versioning rules from conventional commits. Updates version in package files (package.json, deno.json, jsr.json) via plugin-based updaters.
+`@monup/version` determines the next version from commits and writes that version back to package manifests before changelog generation and publishing.
 
-## Use Case
+## Main Exports
 
-Use when you need to determine version bumps from commit types (feat → minor, fix → patch, breaking → major) and update version fields in package files.
+  - `calculateVersion()`: derive bump type and next version from commits.
+  - `getPreviousVersion()`: resolve the previous version from package files, tags, registries, changelogs, or releases.
+  - `runVersionBump()`: apply version bumps across detected packages.
+  - `getCurrentVersionFromFile()` and `updateVersionInFile()`: read and write versions in one manifest.
+  - `updateVersionInAdditionalFiles()`: replace version strings in extra files.
+  - `registerUpdater()`: add support for more manifest types.
 
 ## Example
 
-```typescript
+```ts
 import { calculateVersion, updateVersionInFile } from '@monup/version';
 
-const { bumpType, nextVersion } = calculateVersion('1.0.0', commits);
+const { nextVersion } = calculateVersion('1.0.0', commits);
 
-if (nextVersion) {
-	await updateVersionInFile('./package.json', nextVersion);
+if (typeof nextVersion === 'string') {
+  await updateVersionInFile('./package.json', nextVersion);
 }
 ```
+
+## Related Packages
+
+  - [`@monup/git`](../git/README.md): provides commit history and tags.
+  - [`@monup/changelog`](../changelog/README.md): usually runs after versioning.

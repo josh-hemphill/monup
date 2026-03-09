@@ -1,26 +1,33 @@
 # @monup/changelog
 
-Generates changelogs from conventional commits.
+Changelog generation and extraction for the second Monup workflow step.
 
-## Purpose
+## Workflow Role
 
-Transforms parsed git commits into formatted changelog entries grouped by type (feat, fix, etc.), with support for custom formatting, scope mapping, and version markers for extraction.
+`@monup/changelog` turns commit history into changelog blocks after versioning. It also stores version markers so later steps can extract release notes for GitHub releases.
 
-## Use Case
+## Main Exports
 
-Use when you need to generate or update a CHANGELOG.md file from your git history. Groups commits by type, formats them according to conventional commit standards, and prepends new entries to existing changelogs.
+  - `generateChangelog()`: write a new changelog block for a version.
+  - `runChangelog()`: update root or per-package changelogs across a workspace.
+  - `extractChangelogForVersion()`: read one version block back out of a changelog.
+  - `getLatestVersionFromChangelog()`: detect the latest documented version.
+  - `createVersionMarkers()`, `findVersionMarkers()`, and `findVersionBlocks()`: marker helpers for extraction and sync.
 
 ## Example
 
-```typescript
-import { generateChangelog } from '@monup/changelog';
-import { getCommits } from '@monup/git';
+```ts
+import { defaultChangelogOptions, generateChangelog } from '@monup/changelog';
 
-const commits = await getCommits('v1.0.0');
-const changelog = await generateChangelog(
-	'1.1.0',
-	commits,
-	'my-package',
-	defaultChangelogOptions,
+await generateChangelog(
+  '1.1.0',
+  commits,
+  'my-package',
+  defaultChangelogOptions,
 );
 ```
+
+## Related Packages
+
+  - [`@monup/version`](../version/README.md): usually provides the version first.
+  - [`@monup/github`](../github/README.md): extracts release notes from changelog content.
