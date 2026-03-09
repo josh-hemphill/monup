@@ -102,4 +102,3 @@ export function findVersionBlocks(changelogContent: string): VersionBlock[] {
 
 	return blocks;
 }
-

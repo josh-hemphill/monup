@@ -232,13 +232,13 @@ async function syncChangelogToTaggedBlocks(
 	const blocksByVersion = options.git.tagStrategy === 'package' && typeof pkg === 'object'
 		? await buildPackageBootstrapBlocks(pkg, options.changelog, options.root, packages)
 		: await buildGlobalBootstrapBlocks(
-			packageName,
-			options.changelog,
-			options.root,
-			packages,
-			options.git.tagTemplate,
-			pkg,
-		);
+				packageName,
+				options.changelog,
+				options.root,
+				packages,
+				options.git.tagTemplate,
+				pkg,
+			);
 	if (blocksByVersion.size === 0) {
 		return false;
 	}
@@ -509,13 +509,13 @@ export async function runChangelog(
 				const bootstrapBlocks = options.git.tagStrategy === 'package'
 					? await buildPackageBootstrapBlocks(pkg, options.changelog, options.root, packages)
 					: await buildGlobalBootstrapBlocks(
-						pkg.name,
-						options.changelog,
-						options.root,
-						packages,
-						options.git.tagTemplate,
-						pkg,
-					);
+							pkg.name,
+							options.changelog,
+							options.root,
+							packages,
+							options.git.tagTemplate,
+							pkg,
+						);
 				if (bootstrapBlocks.size > 0) {
 					await writeChangelogFromBlocks(changelogPath, bootstrapBlocks);
 					logger.debug('Bootstrapped package changelog from tag intervals', {

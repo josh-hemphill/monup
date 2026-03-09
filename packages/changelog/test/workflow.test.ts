@@ -1,8 +1,8 @@
 import type { PackageInfo } from '@monup/workspace';
-import { getCommits, getFirstCommit } from '@monup/git';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { getCommits, getFirstCommit } from '@monup/git';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { $, cd } from 'zx';
 import { runChangelog } from '../src/index.ts';
