@@ -8,45 +8,25 @@ import type { ChangelogOptions } from './options.ts';
  */
 import { dirname, resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { filterCommitsByPackage, getGitHubRepo } from '@monup/git';
+import { filterCommitsByPackage, getCommits, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getPackageTagHistory } from '@monup/git';
 import { sortVersionsDescending } from '@monup/utils';
 import { getPreviousVersion } from '@monup/version';
 import { fs } from 'zx';
 import packageJson from '../jsr.json' with { type: 'json' };
 import { formatChangelogSections, groupCommits } from './formatter.ts';
 import { logger } from './logger.ts';
-import { createVersionMarkers, extractVersionChangelog, findVersionMarkers } from './markers.ts';
+import { createVersionMarkers, extractVersionChangelog, findVersionBlocks, findVersionMarkers } from './markers.ts';
 import { resolveChangelogPath } from './path-resolver.ts';
 import { resolveVersionWithFallback } from './version-utils.ts';
 
 export { buildCommitUrl, formatChangelogSections, formatCommitMessage, groupCommits } from './formatter.ts';
 export { logger } from './logger.ts';
-export { createVersionMarkers, extractVersionChangelog, findVersionMarkers } from './markers.ts';
+export { createVersionMarkers, extractVersionChangelog, findVersionBlocks, findVersionMarkers } from './markers.ts';
 
 export const _VERSION: string = packageJson.version;
 
-/**
- * Generates changelog from commits
- */
-export async function generateChangelog(
-	version: string,
-	commits: ParsedCommit[],
-	packageName: string,
-	options: ChangelogOptions,
-	changelogPath?: string,
-): Promise<string> {
-	logger.debug('Generating changelog', { version, packageName, commitCount: commits.length });
-	const changelogOpts: ChangelogOptions = options;
-	const defaultLocation = typeof changelogOpts.location === 'string' ? changelogOpts.location : 'CHANGELOG.md';
-	const changelogLocation = resolveChangelogPath(changelogPath, defaultLocation);
-	logger.trace('Changelog location', { changelogLocation });
-
-	// Group commits
-	logger.debug('Grouping commits');
-	const grouped = groupCommits(commits, changelogOpts);
-	logger.trace('Commits grouped', { groupCount: grouped.size });
-
-	// Resolve commit URL template for links (owner/repo from git remote when template uses them)
+/** Resolves formatter options for optional commit links. */
+async function resolveFormatterOptions(changelogOpts: ChangelogOptions): Promise<ChangelogOptions> {
 	let optsForFormatter: ChangelogOptions = changelogOpts;
 	if (changelogOpts.commitLinks && typeof changelogOpts.commitUrlTemplate === 'string' && changelogOpts.commitUrlTemplate.length > 0) {
 		const template = changelogOpts.commitUrlTemplate;
@@ -73,17 +53,190 @@ export async function generateChangelog(
 			optsForFormatter = { ...changelogOpts, resolvedCommitUrlTemplate: template };
 		}
 	}
+	return optsForFormatter;
+}
 
-	// Format sections
-	logger.debug('Formatting changelog sections');
+/** Builds one marker-wrapped changelog block for a version/package. */
+async function buildChangelogEntry(
+	version: string,
+	commits: ParsedCommit[],
+	packageName: string,
+	options: ChangelogOptions,
+): Promise<string> {
+	logger.debug('Building changelog entry', { version, packageName, commitCount: commits.length });
+	const grouped = groupCommits(commits, options);
+	const optsForFormatter = await resolveFormatterOptions(options);
 	const sections = formatChangelogSections(grouped, optsForFormatter);
-	logger.trace('Sections formatted', { sectionCount: sections.length });
-
-	// Build changelog entry
+	if (sections.length === 0) {
+		const emptyVersionText = optsForFormatter.titles?.emptyVersion ?? 'No significant changes';
+		if (emptyVersionText.length > 0) {
+			sections.push(`- ${emptyVersionText}`, '');
+		}
+	}
 	const markers = createVersionMarkers(version, packageName);
 	const date = new Date().toISOString().split('T')[0];
-	const header = `## [${version}] - ${date}`;
-	const content = [markers.start, header, '', ...sections, markers.end].join('\n');
+	const header = `## ${packageName}@${version} - ${date}`;
+	return [markers.start, header, '', ...sections, markers.end].join('\n');
+}
+
+/** Extracts existing marker blocks keyed by version for one package changelog. */
+function getCachedBlocksByVersion(changelogContent: string, packageName: string): Map<string, string> {
+	const cached = new Map<string, string>();
+	for (const block of findVersionBlocks(changelogContent)) {
+		if (block.packageName !== packageName) {
+			continue;
+		}
+		if (!cached.has(block.version)) {
+			cached.set(block.version, block.content);
+		}
+	}
+	return cached;
+}
+
+/** Renders full changelog file content from version blocks in descending order. */
+function renderChangelogFromBlocks(blocksByVersion: Map<string, string>): string {
+	const sortedVersions = sortVersionsDescending(Array.from(blocksByVersion.keys()));
+	const blocks = sortedVersions
+		.map((version) => blocksByVersion.get(version))
+		.filter((block): block is string => typeof block === 'string' && block.length > 0);
+	if (blocks.length === 0) {
+		return '# Changelog\n';
+	}
+	return `# Changelog\n\n${blocks.join('\n\n')}\n`;
+}
+
+/** Returns true when a changelog file already exists. */
+async function changelogExists(changelogLocation: string): Promise<boolean> {
+	try {
+		await fs.stat(changelogLocation);
+		return true;
+	}
+	catch {
+		return false;
+	}
+}
+
+/** Writes a complete changelog file from prepared blocks. */
+async function writeChangelogFromBlocks(
+	changelogLocation: string,
+	blocksByVersion: Map<string, string>,
+): Promise<void> {
+	const content = renderChangelogFromBlocks(blocksByVersion);
+	await fs.mkdir(dirname(changelogLocation), { recursive: true });
+	await fs.writeFile(changelogLocation, content, 'utf-8');
+}
+
+/** Rebuilds and writes full changelog file using generated + cached version blocks. */
+async function rebuildChangelogFile(
+	changelogLocation: string,
+	packageName: string,
+	version: string,
+	generatedBlock: string,
+): Promise<void> {
+	let existingContent = '';
+	try {
+		existingContent = await fs.readFile(changelogLocation, 'utf-8');
+		logger.trace('Read existing changelog for rebuild', { changelogLocation, length: existingContent.length });
+	}
+	catch {
+		logger.trace('Changelog does not exist for rebuild, creating new file', { changelogLocation });
+	}
+
+	const blocksByVersion = getCachedBlocksByVersion(existingContent, packageName);
+	blocksByVersion.set(version, generatedBlock);
+	const rebuiltContent = renderChangelogFromBlocks(blocksByVersion);
+
+	await fs.mkdir(dirname(changelogLocation), { recursive: true });
+	await fs.writeFile(changelogLocation, rebuiltContent, 'utf-8');
+	logger.debug('Changelog rebuilt successfully', { changelogLocation, versions: blocksByVersion.size });
+}
+
+/** Selects commits relevant to one package from streamed commit output. */
+function selectCommitsForPackage(
+	commits: ParsedCommit[],
+	pkg: PackageInfo,
+	allPackages: PackageInfo[],
+): ParsedCommit[] {
+	const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, allPackages);
+	const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
+	const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
+	return isRootPackage
+		? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+		: scopedPackageCommits;
+}
+
+/** Builds historical blocks from adjacent global tag intervals. */
+async function buildGlobalBootstrapBlocks(
+	packageName: string,
+	options: ChangelogOptions,
+	root: string,
+	packages: PackageInfo[],
+	tagTemplate?: string,
+	targetPackage?: PackageInfo,
+): Promise<Map<string, string>> {
+	const tags = await getGlobalTagHistory(tagTemplate, undefined, root);
+	if (tags.length === 0) {
+		return new Map();
+	}
+
+	const blocksByVersion = new Map<string, string>();
+	for (let idx = 0; idx < tags.length; idx += 1) {
+		const currentTag = tags[idx];
+		const previousTag = idx > 0 ? tags[idx - 1] : undefined;
+		const intervalCommits = await getCommits(previousTag?.tag, currentTag.tag, packages, root);
+		const commitsForBlock = typeof targetPackage === 'object'
+			? selectCommitsForPackage(intervalCommits, targetPackage, packages)
+			: intervalCommits;
+		const block = await buildChangelogEntry(currentTag.version, commitsForBlock, packageName, options);
+		blocksByVersion.set(currentTag.version, block);
+	}
+
+	return blocksByVersion;
+}
+
+/** Builds historical blocks from adjacent package tag intervals. */
+async function buildPackageBootstrapBlocks(
+	pkg: PackageInfo,
+	options: ChangelogOptions,
+	root: string,
+	allPackages: PackageInfo[],
+): Promise<Map<string, string>> {
+	const tags = await getPackageTagHistory(pkg.name, root);
+	if (tags.length === 0) {
+		return new Map();
+	}
+
+	const firstCommit = await getFirstCommit(root);
+	const blocksByVersion = new Map<string, string>();
+	for (let idx = 0; idx < tags.length; idx += 1) {
+		const currentTag = tags[idx];
+		const previousTag = idx > 0 ? tags[idx - 1] : undefined;
+		const fromRef = typeof previousTag?.tag === 'string' ? previousTag.tag : firstCommit;
+		const intervalCommits = await getCommits(fromRef, currentTag.tag, allPackages, root);
+		const packageCommits = selectCommitsForPackage(intervalCommits, pkg, allPackages);
+		const block = await buildChangelogEntry(currentTag.version, packageCommits, pkg.name, options);
+		blocksByVersion.set(currentTag.version, block);
+	}
+
+	return blocksByVersion;
+}
+
+/**
+ * Generates changelog from commits
+ */
+export async function generateChangelog(
+	version: string,
+	commits: ParsedCommit[],
+	packageName: string,
+	options: ChangelogOptions,
+	changelogPath?: string,
+): Promise<string> {
+	logger.debug('Generating changelog', { version, packageName, commitCount: commits.length });
+	const changelogOpts: ChangelogOptions = options;
+	const defaultLocation = typeof changelogOpts.location === 'string' ? changelogOpts.location : 'CHANGELOG.md';
+	const changelogLocation = resolveChangelogPath(changelogPath, defaultLocation);
+	logger.trace('Changelog location', { changelogLocation });
+	const content = await buildChangelogEntry(version, commits, packageName, changelogOpts);
 
 	// Read existing changelog if it exists
 	let existingContent = '';
@@ -199,9 +352,34 @@ export async function runChangelog(
 	commits: ParsedCommit[],
 ): Promise<void> {
 	if (options.changelog.strategy === 'root') {
+		const changelogPath = resolve(options.root, options.changelog.location);
+		const hasExistingChangelog = await changelogExists(changelogPath);
+		if (!hasExistingChangelog) {
+			try {
+				const bootstrapBlocks = await buildGlobalBootstrapBlocks(
+					'root',
+					options.changelog,
+					options.root,
+					packages,
+					options.git.tagTemplate,
+					undefined,
+				);
+				if (bootstrapBlocks.size > 0) {
+					await writeChangelogFromBlocks(changelogPath, bootstrapBlocks);
+					logger.debug('Bootstrapped root changelog from tag intervals', { versionCount: bootstrapBlocks.size });
+					return;
+				}
+			}
+			catch(error: unknown) {
+				logger.debug('Skipping root bootstrap from tags', {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
 		let version: string | undefined;
 		try {
-			version = await getLatestVersionFromChangelog(undefined, options.changelog);
+			version = await getLatestVersionFromChangelog(undefined, options.changelog, changelogPath);
 		}
 		catch(error: unknown) {
 			logger.debug('Failed to get version from changelog', {
@@ -228,24 +406,47 @@ export async function runChangelog(
 		}
 
 		const finalVersion = resolveVersionWithFallback(version, options.changelog, 'root');
-		await generateChangelog(finalVersion, commits, 'root', options.changelog);
+		const generatedBlock = await buildChangelogEntry(finalVersion, commits, 'root', options.changelog);
+		await rebuildChangelogFile(changelogPath, 'root', finalVersion, generatedBlock);
 		return;
 	}
 
-	const { scopedCommits, unscopedCommits } = filterCommitsByPackage(commits, packages);
 	for (const pkg of packages) {
-		const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
-		const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
-		const packageCommits = isRootPackage
-			? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
-			: scopedPackageCommits;
-
+		const packageCommits = selectCommitsForPackage(commits, pkg, packages);
+		const changelogPath = resolve(pkg.path, options.changelog.location);
+		const hasExistingChangelog = await changelogExists(changelogPath);
+		if (!hasExistingChangelog) {
+			try {
+				const bootstrapBlocks = options.git.tagStrategy === 'package'
+					? await buildPackageBootstrapBlocks(pkg, options.changelog, options.root, packages)
+					: await buildGlobalBootstrapBlocks(
+						pkg.name,
+						options.changelog,
+						options.root,
+						packages,
+						options.git.tagTemplate,
+						pkg,
+					);
+				if (bootstrapBlocks.size > 0) {
+					await writeChangelogFromBlocks(changelogPath, bootstrapBlocks);
+					logger.debug('Bootstrapped package changelog from tag intervals', {
+						package: pkg.name,
+						versionCount: bootstrapBlocks.size,
+					});
+					continue;
+				}
+			}
+			catch(error: unknown) {
+				logger.debug('Skipping package bootstrap from tags', {
+					package: pkg.name,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
 		if (packageCommits.length === 0) {
 			logger.info(`No commits for ${pkg.name}, skipping changelog`);
 			continue;
 		}
-
-		const changelogPath = resolve(pkg.path, options.changelog.location);
 		let version: string | undefined;
 		try {
 			version = await getPreviousVersion(pkg, {
@@ -278,7 +479,8 @@ export async function runChangelog(
 		}
 
 		const finalVersion = resolveVersionWithFallback(version, options.changelog, pkg.name);
-		await generateChangelog(finalVersion, packageCommits, pkg.name, options.changelog, changelogPath);
+		const generatedBlock = await buildChangelogEntry(finalVersion, packageCommits, pkg.name, options.changelog);
+		await rebuildChangelogFile(changelogPath, pkg.name, finalVersion, generatedBlock);
 	}
 }
 

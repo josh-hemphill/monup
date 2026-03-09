@@ -7,7 +7,7 @@
 import { tmpdir } from 'node:os';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { $, cd, fs, path } from 'zx';
-import { createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getLastTag, isPrerelease } from '../src/index.ts';
+import { createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastTag, getPackageTagHistory, isPrerelease } from '../src/index.ts';
 import { mockPackages } from './mock.ts';
 
 describe('git package - shell command test cases', () => {
@@ -51,6 +51,8 @@ describe('git package - shell command test cases', () => {
 			// Create some tags
 			await $`git tag v1.0.0`.quiet();
 			await $`git tag v1.1.0`.quiet();
+			await $`git tag test-package@1.0.0`.quiet();
+			await $`git tag test-package@1.1.0`.quiet();
 		}
 		finally {
 			cd(originalCwd);
@@ -108,6 +110,20 @@ describe('git package - shell command test cases', () => {
 		expect(typeof lastTag).toBe('string');
 		const tag = lastTag as string;
 		expect(tag.length).toBeGreaterThan(0);
+	});
+
+	it('should get global tag history sorted oldest to newest', async() => {
+		const history = await getGlobalTagHistory('v%s', undefined, testRepoDir);
+		expect(history.length).toBeGreaterThanOrEqual(2);
+		expect(history[0]?.version).toBe('1.0.0');
+		expect(history[1]?.version).toBe('1.1.0');
+	});
+
+	it('should get package tag history sorted oldest to newest', async() => {
+		const history = await getPackageTagHistory('test-package', testRepoDir);
+		expect(history.length).toBeGreaterThanOrEqual(2);
+		expect(history[0]?.version).toBe('1.0.0');
+		expect(history[1]?.version).toBe('1.1.0');
 	});
 
 	it('should get first commit', async() => {

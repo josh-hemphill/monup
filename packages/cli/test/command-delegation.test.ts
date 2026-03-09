@@ -1,15 +1,24 @@
 import type { ResolvedMonupOptions } from '@monup/options';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { handleChangelog } from '../src/commands/changelog.ts';
 
 import { handleGithub } from '../src/commands/github.ts';
 import { handleRelease } from '../src/commands/release.ts';
 
 const {
+	getCommitsMock,
+	getFirstCommitMock,
+	runChangelogMock,
 	createReleasesForPackagesMock,
 	publishPackagesMock,
 	getPackagesWithCacheMock,
 	getCachedPackagesMock,
+	getCachedCommitsMock,
+	setCachedCommitsMock,
 } = vi.hoisted(() => ({
+	getCommitsMock: vi.fn(async() => []),
+	getFirstCommitMock: vi.fn(async() => 'first-hash'),
+	runChangelogMock: vi.fn(async() => undefined),
 	createReleasesForPackagesMock: vi.fn(async() => undefined),
 	publishPackagesMock: vi.fn(async() => undefined),
 	getPackagesWithCacheMock: vi.fn(async() => ([
@@ -18,7 +27,26 @@ const {
 	getCachedPackagesMock: vi.fn(() => ([
 		{ name: 'pkg1', path: '/workspace/pkg1', root: '/workspace', packageFile: '/workspace/pkg1/package.json' },
 	])),
+	getCachedCommitsMock: vi.fn(() => undefined),
+	setCachedCommitsMock: vi.fn(),
 }));
+
+vi.mock('@monup/git', async() => {
+	const actual = await vi.importActual<typeof import('@monup/git')>('@monup/git');
+	return {
+		...actual,
+		getCommits: getCommitsMock,
+		getFirstCommit: getFirstCommitMock,
+	};
+});
+
+vi.mock('@monup/changelog', async() => {
+	const actual = await vi.importActual<typeof import('@monup/changelog')>('@monup/changelog');
+	return {
+		...actual,
+		runChangelog: runChangelogMock,
+	};
+});
 
 vi.mock('@monup/github', async() => {
 	const actual = await vi.importActual<typeof import('@monup/github')>('@monup/github');
@@ -45,6 +73,8 @@ vi.mock('../src/cache.ts', async() => {
 	return {
 		...actual,
 		getCachedPackages: getCachedPackagesMock,
+		getCachedCommits: getCachedCommitsMock,
+		setCachedCommits: setCachedCommitsMock,
 	};
 });
 
@@ -115,10 +145,57 @@ const options: ResolvedMonupOptions = {
 
 describe('command delegation', () => {
 	beforeEach(() => {
+		getCommitsMock.mockClear();
+		getFirstCommitMock.mockClear();
+		runChangelogMock.mockClear();
 		createReleasesForPackagesMock.mockClear();
 		publishPackagesMock.mockClear();
 		getPackagesWithCacheMock.mockClear();
 		getCachedPackagesMock.mockClear();
+		getCachedCommitsMock.mockClear();
+		setCachedCommitsMock.mockClear();
+	});
+
+	it('delegates changelog command using explicit git.from/git.to range', async() => {
+		await handleChangelog({
+			...options,
+			git: {
+				...options.git,
+				from: 'v1.0.0',
+				to: 'HEAD',
+			},
+		});
+
+		expect(getFirstCommitMock).not.toHaveBeenCalled();
+		expect(getCommitsMock).toHaveBeenCalledWith(
+			'v1.0.0',
+			'HEAD',
+			expect.any(Array),
+			'/workspace',
+		);
+		expect(runChangelogMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('delegates changelog command using first commit..HEAD fallback when range is not set', async() => {
+		getFirstCommitMock.mockResolvedValueOnce('abc123');
+
+		await handleChangelog({
+			...options,
+			git: {
+				...options.git,
+				from: undefined,
+				to: undefined,
+			},
+		});
+
+		expect(getFirstCommitMock).toHaveBeenCalledWith('/workspace');
+		expect(getCommitsMock).toHaveBeenCalledWith(
+			'abc123',
+			'HEAD',
+			expect.any(Array),
+			'/workspace',
+		);
+		expect(runChangelogMock).toHaveBeenCalledTimes(1);
 	});
 
 	it('delegates github command to createReleasesForPackages', async() => {

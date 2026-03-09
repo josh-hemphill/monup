@@ -12,7 +12,7 @@ import { logger } from './logger.ts';
 import { parseGitLog } from './parser.ts';
 import { spawnGit } from './spawn.ts';
 import { streamGitCommits } from './streamer.ts';
-import { escapeRegex } from './tag-utils.ts';
+import { escapeRegex, extractVersionFromScopedTag, extractVersionFromTagByStrategy } from './tag-utils.ts';
 
 export type { PackageInfo } from './filter.ts';
 export { filterCommitsByPackage } from './filter.ts';
@@ -38,6 +38,11 @@ export interface GitWorkflowOptions {
 	tagStrategy?: 'package' | 'global';
 	tagTemplate?: string;
 	tagFilter?: (tag: string) => boolean;
+}
+
+export interface VersionTag {
+	tag: string;
+	version: string;
 }
 /**
  * Gets git commits in a range
@@ -226,6 +231,30 @@ export async function getLastPackageTag(
 }
 
 /**
+ * Gets package tag history sorted oldest to newest.
+ * @param packageName - Package name to filter tags by
+ * @param root - Root directory for git operations (default: current working directory)
+ */
+export async function getPackageTagHistory(
+	packageName: string,
+	root: string = cwd(),
+): Promise<VersionTag[]> {
+	const escapedPackageName = packageName.replace(/[*?[\]\\]/g, '\\$&');
+	const args = ['tag', '-l', `${escapedPackageName}@*`, '--sort=version:refname'];
+	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
+	const tags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
+	const history: VersionTag[] = [];
+	for (const tag of tags) {
+		const version = extractVersionFromScopedTag(tag);
+		if (typeof version !== 'string') {
+			continue;
+		}
+		history.push({ tag, version });
+	}
+	return history;
+}
+
+/**
  * Gets the last global tag (not scoped to a package)
  * @param filter - Optional glob pattern to filter tags via git CLI (e.g., 'v*')
  * @param template - Optional tag template for matching (e.g., 'v%s')
@@ -286,6 +315,34 @@ export async function getLastTag(
 
 	logger.debug('No tags found');
 	return undefined;
+}
+
+/**
+ * Gets global tag history sorted oldest to newest.
+ * @param template - Optional tag template for matching (e.g., 'v%s')
+ * @param filterFunction - Optional function to filter tags after retrieving from CLI
+ * @param root - Root directory for git operations (default: current working directory)
+ */
+export async function getGlobalTagHistory(
+	template?: string,
+	filterFunction?: (tag: string) => boolean,
+	root: string = cwd(),
+): Promise<VersionTag[]> {
+	const args = ['tag', '-l', '--sort=version:refname'];
+	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
+	let tags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
+	if (typeof filterFunction === 'function' && tags.length > 0) {
+		tags = tags.filter(filterFunction);
+	}
+	const history: VersionTag[] = [];
+	for (const tag of tags) {
+		const version = extractVersionFromTagByStrategy(tag, 'global', template);
+		if (typeof version !== 'string') {
+			continue;
+		}
+		history.push({ tag, version });
+	}
+	return history;
 }
 
 function selectPackageCommits(

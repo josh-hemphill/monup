@@ -4,6 +4,10 @@
 
 import { regex } from 'arkregex';
 
+function escapeForRegex(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Creates HTML comment markers for a version
  */
@@ -44,12 +48,28 @@ export function findVersionMarkers(changelogContent: string): Array<{
 	startIndex: number;
 	endIndex: number;
 }> {
-	const markers: Array<{
-		version: string;
-		packageName: string;
-		startIndex: number;
-		endIndex: number;
-	}> = [];
+	const markers = findVersionBlocks(changelogContent).map((block) => ({
+		version: block.version,
+		packageName: block.packageName,
+		startIndex: block.startIndex,
+		endIndex: block.endIndex,
+	}));
+	return markers;
+}
+
+export interface VersionBlock {
+	version: string;
+	packageName: string;
+	startIndex: number;
+	endIndex: number;
+	content: string;
+}
+
+/**
+ * Finds complete version blocks including markers and inner content.
+ */
+export function findVersionBlocks(changelogContent: string): VersionBlock[] {
+	const blocks: VersionBlock[] = [];
 
 	const startPattern = /<!-- monup:version:([^:]+):([^:]+):start -->/g;
 
@@ -60,21 +80,26 @@ export function findVersionMarkers(changelogContent: string): Array<{
 		const startIndex = match.index;
 
 		// Find corresponding end marker
+		const escapedVersion = escapeForRegex(version);
+		const escapedPackageName = escapeForRegex(packageName);
 		const endMatch = regex(
-			`<!-- monup:version:${version.replace(/\./g, '\\.')}:${packageName}:end -->`,
+			`<!-- monup:version:${escapedVersion}:${escapedPackageName}:end -->`,
 		).exec(changelogContent.slice(startIndex));
 
 		if (endMatch) {
-			markers.push({
+			const endIndex = startIndex + endMatch.index + endMatch[0].length;
+			blocks.push({
 				version,
 				packageName,
 				startIndex,
-				endIndex: startIndex + endMatch.index + endMatch[0].length,
+				endIndex,
+				content: changelogContent.slice(startIndex, endIndex),
 			});
 		}
 
 		match = startPattern.exec(changelogContent);
 	}
 
-	return markers;
+	return blocks;
 }
+

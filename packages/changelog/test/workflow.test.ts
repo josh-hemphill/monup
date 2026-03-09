@@ -3,6 +3,7 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { $, cd } from 'zx';
 import { runChangelog } from '../src/index.ts';
 import { defaultChangelogOptions } from '../src/options.ts';
 
@@ -92,7 +93,188 @@ describe('runChangelog', () => {
 		);
 
 		const rootChangelog = await readFile(join(testDir, 'ROOT_CHANGELOG.md'), 'utf-8');
-		expect(rootChangelog).toContain('## [');
+		expect(rootChangelog).toContain('## root@');
 		expect(rootChangelog).toContain('root');
+	});
+
+	it('rebuilds changelog with stable version ordering and without duplicate version blocks', async() => {
+		const existing = `# Changelog
+
+<!-- monup:version:1.0.1:pkg1:start -->
+## pkg1@1.0.1 - 2024-02-01
+<!-- monup:version:1.0.1:pkg1:end -->
+
+<!-- monup:version:1.0.0:pkg1:start -->
+## pkg1@1.0.0 - 2024-01-01
+### Features
+- Old entry
+<!-- monup:version:1.0.0:pkg1:end -->
+
+<!-- monup:version:0.9.0:pkg1:start -->
+## pkg1@0.9.0 - 2023-12-01
+<!-- monup:version:0.9.0:pkg1:end -->
+`;
+		await writeFile(join(pkg1.path, 'CHANGELOG.md'), existing, 'utf-8');
+
+		await runChangelog(
+			{
+				changelog: {
+					...defaultChangelogOptions,
+					strategy: 'per-package',
+					location: 'CHANGELOG.md',
+				},
+				git: {
+					tagStrategy: 'global',
+					tagTemplate: 'v%s',
+				},
+				root: testDir,
+			},
+			packages,
+			[
+				{
+					hash: 'abc123',
+					message: 'fix: pkg1 behavior',
+					author: 'test',
+					date: '2024-01-01',
+					type: 'fix',
+					subject: 'pkg1 behavior',
+					packages: ['pkg1'],
+				},
+			],
+		);
+
+		const rebuilt = await readFile(join(pkg1.path, 'CHANGELOG.md'), 'utf-8');
+		expect((rebuilt.match(/monup:version:1\.0\.0:pkg1:start/g) ?? []).length).toBe(1);
+		const idx101 = rebuilt.indexOf('## pkg1@1.0.1');
+		const idx100 = rebuilt.indexOf('## pkg1@1.0.0');
+		const idx090 = rebuilt.indexOf('## pkg1@0.9.0');
+		expect(idx101).toBeGreaterThanOrEqual(0);
+		expect(idx100).toBeGreaterThanOrEqual(0);
+		expect(idx090).toBeGreaterThanOrEqual(0);
+		expect(idx101).toBeLessThan(idx100);
+		expect(idx100).toBeLessThan(idx090);
+		expect(rebuilt).toContain('Pkg1 behavior');
+	});
+
+	it('preserves empty version blocks when no renderable commit sections exist', async() => {
+		await runChangelog(
+			{
+				changelog: {
+					...defaultChangelogOptions,
+					strategy: 'per-package',
+					location: 'CHANGELOG.md',
+				},
+				git: {
+					tagStrategy: 'global',
+					tagTemplate: 'v%s',
+				},
+				root: testDir,
+			},
+			packages,
+			[
+				{
+					hash: 'abc123',
+					message: 'chore: maintenance',
+					author: 'test',
+					date: '2024-01-01',
+					type: 'chore',
+					subject: 'maintenance',
+					packages: ['pkg1'],
+				},
+			],
+		);
+
+		const rebuilt = await readFile(join(pkg1.path, 'CHANGELOG.md'), 'utf-8');
+		expect(rebuilt).toContain('<!-- monup:version:1.0.0:pkg1:start -->');
+		expect(rebuilt).toContain('## pkg1@1.0.0');
+		expect(rebuilt).toContain('<!-- monup:version:1.0.0:pkg1:end -->');
+		expect(rebuilt).not.toContain('### 🚀 Features');
+	});
+
+	it('bootstraps full per-package history from package tag intervals when changelog is missing', async() => {
+		const repoRoot = join(testDir, 'repo');
+		const pkg1Dir = join(repoRoot, 'packages', 'pkg1');
+		const pkg2Dir = join(repoRoot, 'packages', 'pkg2');
+		await mkdir(pkg1Dir, { recursive: true });
+		await mkdir(pkg2Dir, { recursive: true });
+		await writeFile(join(pkg1Dir, 'package.json'), JSON.stringify({ name: 'pkg1', version: '2.0.0' }, null, 2), 'utf-8');
+		await writeFile(join(pkg2Dir, 'package.json'), JSON.stringify({ name: 'pkg2', version: '2.0.0' }, null, 2), 'utf-8');
+
+		const originalCwd = process.cwd();
+		try {
+			cd(repoRoot);
+			await $`git init`.quiet();
+			await $`git config user.name "Test User"`.quiet();
+			await $`git config user.email "test@example.com"`.quiet();
+			await $`git config commit.gpgsign false`.quiet();
+
+			await $`git add .`.quiet();
+			await $`git commit -m "chore: initial packages"`.quiet();
+			await $`git tag pkg1@1.0.0`.quiet();
+			await $`git tag pkg2@1.0.0`.quiet();
+
+			await writeFile(join(pkg1Dir, 'feature.ts'), 'export const one = 1;\n', 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "fix: pkg1 fix"`.quiet();
+			await $`git tag pkg1@1.1.0`.quiet();
+
+			await writeFile(join(pkg2Dir, 'feature.ts'), 'export const two = 2;\n', 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "fix: pkg2 fix"`.quiet();
+			await $`git tag pkg2@1.1.0`.quiet();
+
+			await writeFile(join(pkg1Dir, 'after-tag.ts'), 'export const three = 3;\n', 'utf-8');
+			await $`git add .`.quiet();
+			await $`git commit -m "fix: pkg1 after latest tag"`.quiet();
+		}
+		finally {
+			cd(originalCwd);
+		}
+
+		const repoPackages: PackageInfo[] = [
+			{ name: 'pkg1', path: pkg1Dir, root: repoRoot, packageFile: join(pkg1Dir, 'package.json') },
+			{ name: 'pkg2', path: pkg2Dir, root: repoRoot, packageFile: join(pkg2Dir, 'package.json') },
+		];
+
+		await runChangelog(
+			{
+				changelog: {
+					...defaultChangelogOptions,
+					strategy: 'per-package',
+					location: 'CHANGELOG.md',
+				},
+				git: {
+					tagStrategy: 'package',
+					tagTemplate: 'v%s',
+				},
+				root: repoRoot,
+			},
+			repoPackages,
+			[
+				{
+					hash: 'irrelevant',
+					message: 'fix: this commit list should not drive bootstrap',
+					author: 'test',
+					date: '2024-01-01',
+					type: 'fix',
+					subject: 'this commit list should not drive bootstrap',
+					packages: ['pkg1'],
+				},
+			],
+		);
+
+		const pkg1Changelog = await readFile(join(pkg1Dir, 'CHANGELOG.md'), 'utf-8');
+		const pkg2Changelog = await readFile(join(pkg2Dir, 'CHANGELOG.md'), 'utf-8');
+
+		expect(pkg1Changelog).toContain('## pkg1@1.1.0');
+		expect(pkg1Changelog).toContain('## pkg1@1.0.0');
+		expect(pkg1Changelog).not.toContain('## pkg1@2.0.0');
+		expect(pkg1Changelog).toContain('Pkg1 fix');
+		expect(pkg1Changelog).not.toContain('Pkg2 fix');
+
+		expect(pkg2Changelog).toContain('## pkg2@1.1.0');
+		expect(pkg2Changelog).toContain('## pkg2@1.0.0');
+		expect(pkg2Changelog).toContain('Pkg2 fix');
+		expect(pkg2Changelog).not.toContain('Pkg1 fix');
 	});
 });

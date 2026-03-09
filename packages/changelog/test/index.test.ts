@@ -57,7 +57,7 @@ describe('changelog package - core functionality', () => {
 
 			expect(content).toContain('<!-- monup:version:1.2.3:test-package:start -->');
 			expect(content).toContain('<!-- monup:version:1.2.3:test-package:end -->');
-			expect(content).toContain('## [1.2.3]');
+			expect(content).toContain('## test-package@1.2.3');
 			expect(content).toContain('Add new feature');
 			expect(content).toContain('Resolve bug');
 
@@ -70,7 +70,7 @@ describe('changelog package - core functionality', () => {
 		it('should prepend to existing changelog', async() => {
 			const existingChangelog = `# Changelog
 
-## [1.0.0] - 2024-01-01
+## test-package@1.0.0 - 2024-01-01
 
 ### Features
 - Initial release
@@ -99,11 +99,11 @@ describe('changelog package - core functionality', () => {
 			await generateChangelog('1.1.0', commits, 'test-package', options, changelogPath);
 
 			const fileContent = await readFile(changelogPath, 'utf-8');
-			expect(fileContent).toContain('## [1.1.0]');
-			expect(fileContent).toContain('## [1.0.0]');
+			expect(fileContent).toContain('## test-package@1.1.0');
+			expect(fileContent).toContain('## test-package@1.0.0');
 			// New version should come before old version
-			const newIndex = fileContent.indexOf('## [1.1.0]');
-			const oldIndex = fileContent.indexOf('## [1.0.0]');
+			const newIndex = fileContent.indexOf('## test-package@1.1.0');
+			const oldIndex = fileContent.indexOf('## test-package@1.0.0');
 			expect(newIndex).toBeLessThan(oldIndex);
 		});
 
@@ -189,6 +189,52 @@ describe('changelog package - core functionality', () => {
 			const fileContent = await readFile(nestedPath, 'utf-8');
 			expect(fileContent).toContain('# Changelog');
 		});
+
+		it('should include default empty-version text when no sections are renderable', async() => {
+			const commits: ParsedCommit[] = [
+				{
+					hash: 'abc123',
+					message: 'chore: housekeeping',
+					author: 'test',
+					date: '2024-01-01',
+					type: 'chore',
+					subject: 'housekeeping',
+				},
+			];
+
+			const changelogPath = join(testDir, 'CHANGELOG.md');
+			const content = await generateChangelog('1.0.0', commits, 'test-package', defaultChangelogOptions, changelogPath);
+			expect(content).toContain('No significant changes');
+		});
+
+		it('should include custom empty-version text override', async() => {
+			const commits: ParsedCommit[] = [
+				{
+					hash: 'abc123',
+					message: 'chore: housekeeping',
+					author: 'test',
+					date: '2024-01-01',
+					type: 'chore',
+					subject: 'housekeeping',
+				},
+			];
+
+			const changelogPath = join(testDir, 'CHANGELOG.md');
+			const content = await generateChangelog(
+				'1.0.0',
+				commits,
+				'test-package',
+				{
+					...defaultChangelogOptions,
+					titles: {
+						...defaultChangelogOptions.titles,
+						emptyVersion: 'No notable package changes',
+					},
+				},
+				changelogPath,
+			);
+			expect(content).toContain('No notable package changes');
+		});
 	});
 
 	describe('extractChangelogForVersion', () => {
@@ -196,14 +242,14 @@ describe('changelog package - core functionality', () => {
 			const changelogContent = `# Changelog
 
 <!-- monup:version:1.2.3:test-package:start -->
-## [1.2.3] - 2024-01-01
+## test-package@1.2.3 - 2024-01-01
 
 ### Features
 - New feature
 <!-- monup:version:1.2.3:test-package:end -->
 
 <!-- monup:version:1.0.0:test-package:start -->
-## [1.0.0] - 2024-01-01
+## test-package@1.0.0 - 2024-01-01
 
 ### Features
 - Initial release
@@ -219,7 +265,7 @@ describe('changelog package - core functionality', () => {
 			const extracted = await extractChangelogForVersion('1.2.3', 'test-package', options, changelogPath);
 
 			expect(extracted).toBeDefined();
-			expect(extracted).toContain('## [1.2.3]');
+			expect(extracted).toContain('## test-package@1.2.3');
 			expect(extracted).toContain('New feature');
 			expect(extracted).not.toContain('1.0.0');
 		});
@@ -228,7 +274,7 @@ describe('changelog package - core functionality', () => {
 			const changelogContent = `# Changelog
 
 <!-- monup:version:1.0.0:test-package:start -->
-## [1.0.0] - 2024-01-01
+## test-package@1.0.0 - 2024-01-01
 <!-- monup:version:1.0.0:test-package:end -->
 `;
 			const changelogPath = join(testDir, 'CHANGELOG.md');
@@ -257,7 +303,7 @@ describe('changelog package - core functionality', () => {
 			const changelogContent = `# Changelog
 
 <!-- monup:version:1.2.3:any-package:start -->
-## [1.2.3] - 2024-01-01
+## any-package@1.2.3 - 2024-01-01
 
 ### Features
 - New feature

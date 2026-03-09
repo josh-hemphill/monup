@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createVersionMarkers, extractVersionChangelog, findVersionMarkers } from '../src/markers.ts';
+import { createVersionMarkers, extractVersionChangelog, findVersionBlocks, findVersionMarkers } from '../src/markers.ts';
 
 describe('createVersionMarkers', () => {
 	it('should create start and end markers', () => {
@@ -21,7 +21,7 @@ describe('extractVersionChangelog', () => {
 # Changelog
 
 <!-- monup:version:1.2.3:test-package:start -->
-## [1.2.3] - 2024-01-01
+## test-package@1.2.3 - 2024-01-01
 
 ### Features
 - New feature
@@ -29,7 +29,7 @@ describe('extractVersionChangelog', () => {
 `;
 		const result = extractVersionChangelog(content, '1.2.3', 'test-package');
 		expect(result).toBeDefined();
-		expect(result).toContain('## [1.2.3]');
+		expect(result).toContain('## test-package@1.2.3');
 		expect(result).toContain('New feature');
 	});
 
@@ -104,5 +104,32 @@ Content 2
 		expect(result.length).toBe(2);
 		expect(result[0]?.packageName).toBe('package-a');
 		expect(result[1]?.packageName).toBe('package-b');
+	});
+});
+
+describe('findVersionBlocks', () => {
+	it('returns complete marker-wrapped blocks', () => {
+		const content = `
+<!-- monup:version:1.0.0:package-a:start -->
+## package-a@1.0.0 - 2024-01-01
+<!-- monup:version:1.0.0:package-a:end -->
+`;
+		const result = findVersionBlocks(content);
+		expect(result.length).toBe(1);
+		expect(result[0]?.version).toBe('1.0.0');
+		expect(result[0]?.packageName).toBe('package-a');
+		expect(result[0]?.content).toContain('## package-a@1.0.0');
+	});
+
+	it('handles regex-special characters in package names', () => {
+		const content = `
+<!-- monup:version:1.2.3:@scope/pkg+name:start -->
+Cached
+<!-- monup:version:1.2.3:@scope/pkg+name:end -->
+`;
+		const result = findVersionBlocks(content);
+		expect(result.length).toBe(1);
+		expect(result[0]?.packageName).toBe('@scope/pkg+name');
+		expect(result[0]?.content).toContain('Cached');
 	});
 });
