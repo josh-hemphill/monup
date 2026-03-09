@@ -1,5 +1,5 @@
 {
-  "name": "@scope/readme-only",
-  "version": "1.0.0",
-  "exports": "./mod.ts"
+	"name": "@scope/readme-only",
+	"version": "1.0.0",
+	"exports": "./mod.ts"
 }

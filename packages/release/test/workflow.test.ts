@@ -86,7 +86,7 @@ describe('publishPackages', () => {
 		expect(executePublishMock).toHaveBeenNthCalledWith(
 			1,
 			'/workspace/pkg1',
-			expect.objectContaining({ publishType: 'npm', command: expect.objectContaining({ name: 'pnpm' }) }),
+			{ publishType: 'npm', command: { name: 'pnpm' } },
 			true,
 			[],
 			false,
@@ -94,7 +94,7 @@ describe('publishPackages', () => {
 		expect(executePublishMock).toHaveBeenNthCalledWith(
 			2,
 			'/workspace/pkg1',
-			expect.objectContaining({ publishType: 'jsr', command: expect.objectContaining({ name: 'deno' }) }),
+			{ publishType: 'jsr', command: { name: 'deno' } },
 			true,
 			[],
 			false,

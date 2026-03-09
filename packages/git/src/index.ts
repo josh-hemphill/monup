@@ -31,6 +31,9 @@ export {
 } from './tag-utils.ts';
 
 export const _VERSION: string = packageJson.version;
+const GIT_TAG_GLOB_ESCAPE_PATTERN = /[*?[\]\\]/g;
+const LINE_SPLIT_PATTERN = /\r?\n/;
+const TEMPLATE_PLACEHOLDER_PATTERN = /%s/g;
 
 /**
  * Shared git workflow options used by higher-level package orchestration.
@@ -174,7 +177,7 @@ export async function getLastPackageTags(
 
 	// Escape special glob characters in package names and create patterns
 	const patterns = packageNames.map((packageName) => {
-		const escapedPackageName = packageName.replace(/[*?[\]\\]/g, '\\$&');
+		const escapedPackageName = packageName.replace(GIT_TAG_GLOB_ESCAPE_PATTERN, '\\$&');
 		return `${escapedPackageName}@*`;
 	});
 
@@ -182,7 +185,7 @@ export async function getLastPackageTags(
 	const args = ['tag', '-l', ...patterns, '--sort=-version:refname'];
 	logger.debug('Git tags command', `git ${args.join(' ')}`);
 	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
-	const allTags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
+	const allTags = stdout.split(LINE_SPLIT_PATTERN).filter((tag) => tag.length > 0);
 
 	logger.debug('Filtered package tags', { count: allTags.length, packageCount: packageNames.length });
 
@@ -210,7 +213,7 @@ export async function getLastPackageTags(
 	}
 
 	logger.debug('Last package tags determined', {
-		found: Array.from(packageTagMap.entries()).filter(([, tag]) => typeof tag === 'string').length,
+		found: [...packageTagMap.entries()].filter(([, tag]) => typeof tag === 'string').length,
 		total: packageNames.length,
 	});
 
@@ -240,10 +243,10 @@ export async function getPackageTagHistory(
 	packageName: string,
 	root: string = cwd(),
 ): Promise<VersionTag[]> {
-	const escapedPackageName = packageName.replace(/[*?[\]\\]/g, '\\$&');
+	const escapedPackageName = packageName.replace(GIT_TAG_GLOB_ESCAPE_PATTERN, '\\$&');
 	const args = ['tag', '-l', `${escapedPackageName}@*`, '--sort=version:refname'];
 	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
-	const tags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
+	const tags = stdout.split(LINE_SPLIT_PATTERN).filter((tag) => tag.length > 0);
 	const history: VersionTag[] = [];
 	for (const tag of tags) {
 		const version = extractVersionFromScopedTag(tag);
@@ -281,7 +284,7 @@ export async function getLastTag(
 	args.push('--sort=-version:refname');
 
 	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
-	let tags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
+	let tags = stdout.split(LINE_SPLIT_PATTERN).filter((tag) => tag.length > 0);
 
 	logger.debug('Found tags', { count: tags.length });
 
@@ -295,7 +298,7 @@ export async function getLastTag(
 	if (typeof template === 'string' && tags.length > 0) {
 		// Escape special regex characters in the template, then replace %s with pattern
 		const escapedTemplate = escapeRegex(template);
-		const versionPattern = escapedTemplate.replace(/%s/g, '.+');
+		const versionPattern = escapedTemplate.replace(TEMPLATE_PLACEHOLDER_PATTERN, '.+');
 		const templateRegex = new RegExp(`^${versionPattern}$`);
 		const matchingTags = tags.filter((tag) => templateRegex.test(tag));
 
@@ -331,7 +334,7 @@ export async function getGlobalTagHistory(
 ): Promise<VersionTag[]> {
 	const args = ['tag', '-l', '--sort=version:refname'];
 	const { stdout } = await spawnGit(args, { cwd: root, stdio: 'pipe' });
-	let tags = stdout.split(/\r?\n/).filter((tag) => tag.length > 0);
+	let tags = stdout.split(LINE_SPLIT_PATTERN).filter((tag) => tag.length > 0);
 	if (typeof filterFunction === 'function' && tags.length > 0) {
 		tags = tags.filter(filterFunction);
 	}
@@ -355,7 +358,7 @@ function selectPackageCommits(
 	const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
 	const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
 	return isRootPackage
-		? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+		? [...scopedPackageCommits, ...[...unscopedCommits]]
 		: scopedPackageCommits;
 }
 

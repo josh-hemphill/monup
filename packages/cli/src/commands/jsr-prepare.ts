@@ -12,7 +12,7 @@ import type { PackageInfo } from '@monup/workspace';
  * JSR prepare command handler.
  */
 import { stdin, stdout } from 'node:process';
-import { cancel as clackCancel, confirm as clackConfirm, isCancel, note as clackNote, select as clackSelect, spinner as clackSpinner, text as clackText } from '@clack/prompts';
+import { cancel as clackCancel, confirm as clackConfirm, note as clackNote, select as clackSelect, spinner as clackSpinner, text as clackText, isCancel } from '@clack/prompts';
 import { createJsrAuthorization, pollJsrAuthorization, resolveJsrSetupToken, setupJsrPackages } from '@monup/release';
 import { openExternalUrl, parseJson } from '@monup/utils';
 import { fs, path } from 'zx';
@@ -20,6 +20,10 @@ import { logger } from '../logger.ts';
 import { getPackagesWithCache } from '../package-utils.ts';
 
 const RUNTIME_COMPAT_KEYS = ['browser', 'deno', 'node', 'workerd', 'bun'] as const;
+const README_LINE_SPLIT_PATTERN = /\r?\n/u;
+const MARKDOWN_LINK_PATTERN = /\[([^\]]+)\]\([^)]+\)/g;
+const INLINE_CODE_PATTERN = /`([^`]+)`/g;
+const WHITESPACE_PATTERN = /\s+/g;
 
 type RuntimeCompatKey = typeof RUNTIME_COMPAT_KEYS[number];
 type RuntimeCompatOptionValue = boolean | null | undefined;
@@ -139,7 +143,7 @@ export async function resolveJsrPrepareToken(
 	if (typeof promptSession === 'undefined') {
 		const token = resolveJsrSetupToken();
 		if (typeof token !== 'string') {
-			throw new Error('JSR setup requires the JSR_TOKEN environment variable.');
+			throw new TypeError('JSR setup requires the JSR_TOKEN environment variable.');
 		}
 
 		return token;
@@ -248,7 +252,7 @@ async function waitForAuthorization(
 		finishAuthorizationSpinner(spinner, result);
 		return result.token;
 	}
-	catch (error: unknown) {
+	catch(error: unknown) {
 		spinner?.stop('JSR authorization failed.');
 		logger.error('JSR authorization failed. Re-run with --log-level debug for more details.', {
 			message: error instanceof Error ? error.message : String(error),
@@ -597,7 +601,7 @@ function extractReadmeParagraphs(markdown: string): string[] {
 		currentLines.length = 0;
 	};
 
-	for (const line of markdown.split(/\r?\n/u)) {
+	for (const line of markdown.split(README_LINE_SPLIT_PATTERN)) {
 		const trimmed = line.trim();
 		if (trimmed.startsWith('```')) {
 			inFence = !inFence;
@@ -637,9 +641,9 @@ function extractReadmeParagraphs(markdown: string): string[] {
  */
 function normalizeDescription(value: string): string | undefined {
 	const normalized = value
-		.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-		.replace(/`([^`]+)`/g, '$1')
-		.replace(/\s+/g, ' ')
+		.replace(MARKDOWN_LINK_PATTERN, '$1')
+		.replace(INLINE_CODE_PATTERN, '$1')
+		.replace(WHITESPACE_PATTERN, ' ')
 		.trim();
 	if (normalized.length === 0) {
 		return undefined;
@@ -925,9 +929,10 @@ function compactRuntimeCompat(runtimeCompat: JsrRuntimeCompat | undefined): JsrR
 	}
 
 	const compacted: JsrRuntimeCompat = {};
-	for (const [key, value] of Object.entries(runtimeCompat)) {
+	for (const key of RUNTIME_COMPAT_KEYS) {
+		const value = runtimeCompat[key];
 		if (typeof value === 'boolean' || value === null) {
-			compacted[key as keyof JsrRuntimeCompat] = value;
+			compacted[key] = value;
 		}
 	}
 

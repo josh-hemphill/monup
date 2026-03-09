@@ -103,9 +103,9 @@ This helper is intended for local setup, not CI. It will:
 
 In interactive terminals, authentication now defaults to JSR's browser-based authorization flow:
 
-  - Monup opens the JSR verification URL in your default browser.
-  - It shows the fallback code in the terminal in case the browser does not open cleanly.
-  - It polls for approval and keeps the device token only for the current run.
+- Monup opens the JSR verification URL in your default browser.
+- It shows the fallback code in the terminal in case the browser does not open cleanly.
+- It polls for approval and keeps the device token only for the current run.
 
 `JSR_TOKEN` is still supported as the non-interactive fallback:
 

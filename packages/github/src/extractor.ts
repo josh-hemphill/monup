@@ -93,7 +93,7 @@ export async function extractChangelogForRelease(
 			// Root packages also get unscoped commits
 			const isRootPackage = typeof pkg !== 'undefined' && (pkg.path === '.' || pkg.path === pkg.root);
 			const commitsForThisPackage = isRootPackage
-				? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+				? [...scopedPackageCommits, ...[...unscopedCommits]]
 				: scopedPackageCommits;
 
 			return generateChangelog(version, commitsForThisPackage, packageName, githubOpts.changelog || {}, changelogPath);

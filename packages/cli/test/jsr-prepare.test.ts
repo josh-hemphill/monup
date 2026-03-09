@@ -97,18 +97,25 @@ function createPromptSession(config: {
 	return {
 		promptText: vi.fn(async(_message: string, defaultValue?: string) => textAnswers.shift() ?? defaultValue ?? ''),
 		confirm: vi.fn(async() => confirmAnswers.shift() ?? false),
-		select: vi.fn(async(_message, _options, initialValue) => (selectAnswers.shift() as typeof initialValue | undefined) ?? initialValue),
+		select: vi.fn(async<T extends string>(
+			_message: string,
+			_options: Array<{ value: T; label: string; hint?: string }>,
+			initialValue: T,
+		): Promise<T> => {
+			const selectedValue = selectAnswers.shift();
+			return (typeof selectedValue === 'string' ? selectedValue as T : undefined) ?? initialValue;
+		}),
 		close: vi.fn(),
 	};
 }
 
 describe('inferPackageDescription', () => {
 	it('prefers package.json descriptions', async() => {
-		await expect(inferPackageDescription(packages[0]!)).resolves.toBe('Package description from package.json.');
+		await expect(inferPackageDescription(packages[0])).resolves.toBe('Package description from package.json.');
 	});
 
 	it('falls back to the first README paragraph', async() => {
-		await expect(inferPackageDescription(packages[1]!)).resolves.toBe(
+		await expect(inferPackageDescription(packages[1])).resolves.toBe(
 			'Readme-only package description that should become the inferred JSR summary.',
 		);
 	});

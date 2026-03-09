@@ -24,6 +24,8 @@ export { logger } from './logger.ts';
 export { createVersionMarkers, extractVersionChangelog, findVersionBlocks, findVersionMarkers } from './markers.ts';
 
 export const _VERSION: string = packageJson.version;
+const OWNER_TEMPLATE_REGEX = /\{\{owner\}\}/g;
+const REPO_TEMPLATE_REGEX = /\{\{repo\}\}/g;
 
 /** Resolves formatter options for optional commit links. */
 async function resolveFormatterOptions(changelogOpts: ChangelogOptions): Promise<ChangelogOptions> {
@@ -37,8 +39,8 @@ async function resolveFormatterOptions(changelogOpts: ChangelogOptions): Promise
 				const [owner, repo] = repoSlug.split('/');
 				if (typeof owner === 'string' && typeof repo === 'string') {
 					const resolved = template
-						.replace(/\{\{owner\}\}/g, owner)
-						.replace(/\{\{repo\}\}/g, repo);
+						.replace(OWNER_TEMPLATE_REGEX, owner)
+						.replace(REPO_TEMPLATE_REGEX, repo);
 					optsForFormatter = { ...changelogOpts, resolvedCommitUrlTemplate: resolved };
 				}
 				else {
@@ -95,7 +97,7 @@ function getCachedBlocksByVersion(changelogContent: string, packageName: string)
 
 /** Renders full changelog file content from version blocks in descending order. */
 function renderChangelogFromBlocks(blocksByVersion: Map<string, string>): string {
-	const sortedVersions = sortVersionsDescending(Array.from(blocksByVersion.keys()));
+	const sortedVersions = sortVersionsDescending([...blocksByVersion.keys()]);
 	const blocks = sortedVersions
 		.map((version) => blocksByVersion.get(version))
 		.filter((block): block is string => typeof block === 'string' && block.length > 0);
@@ -161,7 +163,7 @@ function selectCommitsForPackage(
 	const scopedPackageCommits = scopedCommits.get(pkg.name) ?? [];
 	const isRootPackage = pkg.path === '.' || pkg.path === pkg.root;
 	return isRootPackage
-		? [...scopedPackageCommits, ...Array.from(unscopedCommits)]
+		? [...scopedPackageCommits, ...[...unscopedCommits]]
 		: scopedPackageCommits;
 }
 

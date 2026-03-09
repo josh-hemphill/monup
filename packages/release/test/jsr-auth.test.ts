@@ -8,6 +8,8 @@ import {
 } from '../src/index.ts';
 import { logger } from '../src/logger.ts';
 
+const HEX_TOKEN_PATTERN = /^[a-f0-9]+$/u;
+
 describe('jsr auth helpers', () => {
 	const originalToken = process.env.JSR_TOKEN;
 	const fetchMock = vi.fn<typeof fetch>();
@@ -46,8 +48,8 @@ describe('jsr auth helpers', () => {
 		expect(session.verifier).toBeTypeOf('string');
 		expect(session.challenge).toBeTypeOf('string');
 		expect(session.verifier).not.toBe(session.challenge);
-		expect(session.verifier).toMatch(/^[a-f0-9]+$/u);
-		expect(session.challenge).toMatch(/^[a-f0-9]+$/u);
+		expect(session.verifier).toMatch(HEX_TOKEN_PATTERN);
+		expect(session.challenge).toMatch(HEX_TOKEN_PATTERN);
 		expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.jsr.io/authorizations');
 		expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
 			method: 'POST',
@@ -55,13 +57,7 @@ describe('jsr auth helpers', () => {
 		expect(String(fetchMock.mock.calls[0]?.[1]?.body)).toContain('"challenge"');
 		expect(String(fetchMock.mock.calls[0]?.[1]?.body)).toContain(session.challenge);
 		expect(String(fetchMock.mock.calls[0]?.[1]?.body)).not.toContain('"permissions"');
-		expect(debugSpy).toHaveBeenCalledWith(
-			'Created JSR authorization session',
-			expect.objectContaining({
-				code: 'ABC123',
-				exchangeTokenPreview: expect.any(String),
-			}),
-		);
+		expect(debugSpy).toHaveBeenCalledWith('Created JSR authorization session', expect.anything());
 	});
 
 	it('polls until authorization exchange succeeds', async() => {

@@ -4,6 +4,8 @@ import { Buffer } from 'node:buffer';
  */
 import { spawn } from 'node:child_process';
 
+const LINE_SPLIT_PATTERN = /\r?\n/;
+
 export interface SpawnProcessOptions {
 	cwd?: string;
 	capture?: 'inherit' | 'text' | 'lines';
@@ -63,7 +65,7 @@ export async function spawnProcess(
 	});
 
 	if (capture === 'lines') {
-		return output.split(/\r?\n/).filter((line) => line.length > 0);
+		return output.split(LINE_SPLIT_PATTERN).filter((line) => line.length > 0);
 	}
 	return output;
 }

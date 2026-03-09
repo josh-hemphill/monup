@@ -6,6 +6,8 @@ import { resolve } from 'node:path';
 import { regex } from 'arkregex';
 import { fs } from 'zx';
 
+const VERSION_DOT_PATTERN = /\./g;
+
 /**
  * Updates version in a package file
  */
@@ -36,8 +38,8 @@ export async function updateVersionInFiles(
 			const content = await fs.readFile(resolve(file), 'utf-8');
 			// Replace version patterns: v1.2.3, 1.2.3, version: "1.2.3", etc.
 			const patterns = [
-				regex(`\\bv${oldVersion.replace(/\./g, '\\.')}\\b`, 'g'),
-				regex(`\\b${oldVersion.replace(/\./g, '\\.')}\\b`, 'g'),
+				regex(`\\bv${oldVersion.replace(VERSION_DOT_PATTERN, '\\.')}\\b`, 'g'),
+				regex(`\\b${oldVersion.replace(VERSION_DOT_PATTERN, '\\.')}\\b`, 'g'),
 			];
 
 			let updated = content;

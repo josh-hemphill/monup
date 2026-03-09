@@ -8,11 +8,11 @@ Git history, tag, and commit parsing utilities for Monup.
 
 ## Main Exports
 
-  - `getCommits()` and `getCommitsSinceLastTag()`: read commits for workflow decisions.
-  - `getCommitsForPackage()`: select commits relevant to one package.
-  - `getLastTag()`, `getLastPackageTag()`, `getGlobalTagHistory()`, and `getPackageTagHistory()`: work with tags.
-  - `createCommit()`, `createTag()`, `pushToRemote()`, and `getWorkingTreeStatus()`: perform git operations.
-  - `formatTag()`, `parseConventionalCommit()`, and `getGitHubRepo()`: shared helpers for higher-level packages.
+- `getCommits()` and `getCommitsSinceLastTag()`: read commits for workflow decisions.
+- `getCommitsForPackage()`: select commits relevant to one package.
+- `getLastTag()`, `getLastPackageTag()`, `getGlobalTagHistory()`, and `getPackageTagHistory()`: work with tags.
+- `createCommit()`, `createTag()`, `pushToRemote()`, and `getWorkingTreeStatus()`: perform git operations.
+- `formatTag()`, `parseConventionalCommit()`, and `getGitHubRepo()`: shared helpers for higher-level packages.
 
 ## Example
 
@@ -27,5 +27,5 @@ await createTag('v1.1.0', 'Release 1.1.0');
 
 ## Related Packages
 
-  - [`@monup/version`](../version/README.md): uses tags and commits to determine bumps.
-  - [`@monup/changelog`](../changelog/README.md): uses git history to build changelog blocks.
+- [`@monup/version`](../version/README.md): uses tags and commits to determine bumps.
+- [`@monup/changelog`](../changelog/README.md): uses git history to build changelog blocks.

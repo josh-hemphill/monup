@@ -15,6 +15,9 @@ import { logger } from './logger.ts';
 import { resolveAgent } from './pmd-internals.ts';
 import { spawnCommand } from './spawn.ts';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+const YAML_QUOTE_PATTERN = /['"]/g;
+
 export type PublishType = 'npm' | 'jsr';
 
 /**
@@ -92,12 +95,12 @@ async function isPackageInWorkspace(
 	workspaceRoot: string,
 	pattern: string,
 ): Promise<boolean> {
-	const normPackagePath = normalizePathForComparison(resolve(packagePath)).replace(/\/$/, '');
+	const normPackagePath = normalizePathForComparison(resolve(packagePath)).replace(TRAILING_SLASH_PATTERN, '');
 	try {
 		// Use native workspaceRoot for glob cwd so behavior is correct on both Windows and Unix
 		const matches = await glob(pattern, { cwd: workspaceRoot, onlyDirectories: true, absolute: true });
 		return matches.some((match) => {
-			const normMatch = normalizePathForComparison(match).replace(/\/$/, '');
+			const normMatch = normalizePathForComparison(match).replace(TRAILING_SLASH_PATTERN, '');
 			return normPackagePath === normMatch || normPackagePath.startsWith(`${normMatch}/`);
 		});
 	}
@@ -155,7 +158,7 @@ async function analyzeWorkspace(
 					continue;
 				}
 				if (inPackages && trimmed.startsWith('-')) {
-					const pattern = trimmed.slice(1).trim().replace(/['"]/g, '');
+					const pattern = trimmed.slice(1).trim().replace(YAML_QUOTE_PATTERN, '');
 					patterns.push(pattern);
 				}
 				if (inPackages && typeof trimmed === 'string' && trimmed.length > 0 && !trimmed.startsWith('-') && !trimmed.startsWith('#')) {

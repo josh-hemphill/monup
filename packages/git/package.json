@@ -1,34 +1,34 @@
 {
-  "name": "@monup/git",
-  "type": "module",
-  "version": "0.2.2",
-  "private": true,
-  "exports": {
-    "types": "./dist/index.d.mts",
-    "import": "./dist/index.mjs",
-    "typescript": "./src/index.ts"
-  },
-  "main": "dist/index.mjs",
-  "types": "dist/index.d.mts",
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "node build.config.ts",
-    "test": "vitest run",
-    "lint": "eslint .",
-    "format": "eslint . --fix"
-  },
-  "dependencies": {
-    "@monup/utils": "workspace:*",
-    "arkregex": "catalog:dev",
-    "loglevel": "catalog:logging",
-    "zx": "catalog:cli"
-  },
-  "devDependencies": {
-    "@types/fs-extra": "catalog:types",
-    "@types/node": "catalog:types",
-    "obuild": "catalog:build",
-    "vitest": "catalog:dev"
-  }
+	"name": "@monup/git",
+	"type": "module",
+	"version": "0.2.2",
+	"private": true,
+	"exports": {
+		"types": "./dist/index.d.mts",
+		"import": "./dist/index.mjs",
+		"typescript": "./src/index.ts"
+	},
+	"main": "dist/index.mjs",
+	"types": "dist/index.d.mts",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "node build.config.ts",
+		"test": "vitest run",
+		"lint": "eslint .",
+		"format": "eslint . --fix"
+	},
+	"dependencies": {
+		"@monup/utils": "workspace:*",
+		"arkregex": "catalog:dev",
+		"loglevel": "catalog:logging",
+		"zx": "catalog:cli"
+	},
+	"devDependencies": {
+		"@types/fs-extra": "catalog:types",
+		"@types/node": "catalog:types",
+		"obuild": "catalog:build",
+		"vitest": "catalog:dev"
+	}
 }

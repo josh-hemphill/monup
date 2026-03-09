@@ -10,13 +10,15 @@ import { detectPackages } from '@monup/workspace';
 import { getCachedPackages, setCachedPackages } from '../cache.ts';
 import { logger } from '../logger.ts';
 
+const BIN_DIRECTORY_PATH_PATTERN = /(?:^|\/)bin\//;
+
 function getChangePath(change: WorkingTreeChange): string {
 	const renamedPaths = change.path.split(' -> ');
 	return renamedPaths.at(-1) ?? change.path;
 }
 
 function isBinDirectoryPath(filePath: string): boolean {
-	return /(?:^|\/)bin\//.test(filePath);
+	return BIN_DIRECTORY_PATH_PATTERN.test(filePath);
 }
 
 function hasOnlyBinDirectoryChanges(changes: WorkingTreeChange[]): boolean {

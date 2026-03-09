@@ -34,7 +34,7 @@ function pickCanonicalManifest(paths: string[]): string {
 			return 2;
 		return 3;
 	};
-	const sorted = [...paths].sort((a, b) => byPreference(a) - byPreference(b));
+	const sorted = paths.toSorted((a, b) => byPreference(a) - byPreference(b));
 	return sorted[0] ?? '';
 }
 

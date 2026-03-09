@@ -1,6 +1,8 @@
 import type { Agent, AgentName, DetectResult } from 'package-manager-detector';
 import { AGENTS } from 'package-manager-detector';
 
+const VERSION_NUMBER_PATTERN = /\d+(?:\.\d+){0,2}/;
+
 export function resolveAgent(nameAndVer: { name: AgentName; ver?: string } | undefined): DetectResult | null {
 	let agent: Agent | undefined;
 	if (nameAndVer) {
@@ -26,5 +28,5 @@ export function resolveAgent(nameAndVer: { name: AgentName; ver?: string } | und
 }
 
 export function handleVer(version: string | undefined): string | undefined {
-	return version?.match(/\d+(?:\.\d+){0,2}/)?.[0] ?? version;
+	return version?.match(VERSION_NUMBER_PATTERN)?.[0] ?? version;
 }

@@ -6,6 +6,9 @@ import { normalizePathForComparison } from '@monup/utils';
 import { logger } from './logger.ts';
 import { spawnGit } from './spawn.ts';
 
+const LINE_SPLIT_PATTERN = /\r?\n/;
+const TEMPLATE_PLACEHOLDER_PATTERN = /%s/g;
+
 /**
  * Creates a git commit with optional signing
  */
@@ -88,7 +91,7 @@ export async function getWorkingTreeStatus(root: string = cwd()): Promise<Workin
 		['status', '--porcelain=v1', '--branch', '--untracked-files=all'],
 		{ cwd: root, stdio: 'pipe' },
 	);
-	const lines = stdout.split(/\r?\n/).filter((line) => line.length > 0);
+	const lines = stdout.split(LINE_SPLIT_PATTERN).filter((line) => line.length > 0);
 	let branch: string | undefined;
 
 	if (lines[0]?.startsWith('## ')) {
@@ -180,5 +183,5 @@ export async function createTag(
  * Supports %s placeholder for version
  */
 export function formatTag(template: string, version: string): string {
-	return template.replace(/%s/g, version);
+	return template.replace(TEMPLATE_PLACEHOLDER_PATTERN, version);
 }

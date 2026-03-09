@@ -43,7 +43,7 @@ export function setByPath(obj: Record<string, unknown>, path: string, value: unk
 		current = current[key] as Record<string, unknown>;
 	}
 
-	const lastKey = keys[keys.length - 1];
+	const lastKey = keys.at(-1);
 	current[lastKey] = value;
 }
 
@@ -92,7 +92,7 @@ export function deepMerge<T extends Record<string, unknown>>(
 		}
 
 		for (const key in obj) {
-			if (Object.prototype.hasOwnProperty.call(obj, key)) {
+			if (Object.hasOwn(obj, key)) {
 				const value = obj[key];
 
 				// If both values are objects (and not arrays or null), merge recursively
@@ -131,7 +131,7 @@ export function mergeWithDefaults<T extends Record<string, unknown>>(
 	const result = { ...defaults };
 
 	for (const key in provided) {
-		if (Object.prototype.hasOwnProperty.call(provided, key)) {
+		if (Object.hasOwn(provided, key)) {
 			const providedValue = provided[key];
 			const defaultValue = defaults?.[key];
 

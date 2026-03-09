@@ -173,7 +173,7 @@ export async function pollJsrAuthorization(
 		try {
 			return await exchangeJsrAuthorization(session);
 		}
-		catch (error: unknown) {
+		catch(error: unknown) {
 			logger.debug('JSR authorization exchange attempt failed', {
 				attempt: attempt + 1,
 				code: session.code,
@@ -226,7 +226,7 @@ async function requestJsrApi<TResponse>(
 ): Promise<TResponse> {
 	const method = init.method ?? 'GET';
 	const headers = {
-		Accept: 'application/json',
+		'Accept': 'application/json',
 		'Content-Type': 'application/json',
 		'User-Agent': `${packageJson.name}/${packageJson.version}; https://github.com/monup/monup`,
 		...(typeof token === 'string' ? { Authorization: `Bearer ${token}` } : {}),

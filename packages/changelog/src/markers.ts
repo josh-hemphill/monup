@@ -4,8 +4,12 @@
 
 import { regex } from 'arkregex';
 
+const REGEX_ESCAPE_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const VERSION_DOT_PATTERN = /\./g;
+const START_MARKER_PATTERN = /<!-- monup:version:([^:]+):([^:]+):start -->/g;
+
 function escapeForRegex(value: string): string {
-	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return value.replace(REGEX_ESCAPE_PATTERN, '\\$&');
 }
 
 /**
@@ -32,7 +36,7 @@ export function extractVersionChangelog(
 	// Build regex pattern
 	const packagePattern = typeof packageName === 'string' ? `:${packageName}` : ':[^:]+';
 	const pattern = regex(
-		`<!-- monup:version:${version.replace(/\./g, '\\.')}${packagePattern}:start -->([\\s\\S]*?)<!-- monup:version:${version.replace(/\./g, '\\.')}${packagePattern}:end -->`,
+		`<!-- monup:version:${version.replace(VERSION_DOT_PATTERN, '\\.')}${packagePattern}:start -->([\\s\\S]*?)<!-- monup:version:${version.replace(VERSION_DOT_PATTERN, '\\.')}${packagePattern}:end -->`,
 	);
 
 	const match = changelogContent.match(pattern);
@@ -70,10 +74,9 @@ export interface VersionBlock {
  */
 export function findVersionBlocks(changelogContent: string): VersionBlock[] {
 	const blocks: VersionBlock[] = [];
+	START_MARKER_PATTERN.lastIndex = 0;
 
-	const startPattern = /<!-- monup:version:([^:]+):([^:]+):start -->/g;
-
-	let match = startPattern.exec(changelogContent);
+	let match = START_MARKER_PATTERN.exec(changelogContent);
 	while (match !== null) {
 		const version = match[1];
 		const packageName = match[2];
@@ -97,7 +100,7 @@ export function findVersionBlocks(changelogContent: string): VersionBlock[] {
 			});
 		}
 
-		match = startPattern.exec(changelogContent);
+		match = START_MARKER_PATTERN.exec(changelogContent);
 	}
 
 	return blocks;

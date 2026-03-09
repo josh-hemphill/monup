@@ -8,6 +8,8 @@ import { $, cd } from 'zx';
 import { runChangelog } from '../src/index.ts';
 import { defaultChangelogOptions } from '../src/options.ts';
 
+const VERSION_100_START_MARKER_PATTERN = /monup:version:1\.0\.0:pkg1:start/g;
+
 describe('runChangelog', () => {
 	let testDir: string;
 	let pkg1: PackageInfo;
@@ -145,7 +147,7 @@ describe('runChangelog', () => {
 		);
 
 		const rebuilt = await readFile(join(pkg1.path, 'CHANGELOG.md'), 'utf-8');
-		expect((rebuilt.match(/monup:version:1\.0\.0:pkg1:start/g) ?? []).length).toBe(1);
+		expect((rebuilt.match(VERSION_100_START_MARKER_PATTERN) ?? []).length).toBe(1);
 		const idx101 = rebuilt.indexOf('## pkg1@1.0.1');
 		const idx100 = rebuilt.indexOf('## pkg1@1.0.0');
 		const idx090 = rebuilt.indexOf('## pkg1@0.9.0');

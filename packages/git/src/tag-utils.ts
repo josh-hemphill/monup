@@ -2,6 +2,10 @@
  * Tag utility functions for extracting versions from git tags
  */
 
+const REGEX_ESCAPE_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const TEMPLATE_PLACEHOLDER_PATTERN = /%s/g;
+const VERSION_PREFIX_PATTERN = /^v/;
+
 /**
  * Extracts version from a scoped tag (package@version format)
  * @param tag - Tag string (e.g., '@monup/git@1.0.0')
@@ -21,7 +25,7 @@ export function extractVersionFromScopedTag(tag: string): string | undefined {
  * @returns Escaped string safe for use in regex
  */
 export function escapeRegex(str: string): string {
-	return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return str.replace(REGEX_ESCAPE_PATTERN, '\\$&');
 }
 
 /**
@@ -33,7 +37,7 @@ export function escapeRegex(str: string): string {
 export function extractVersionFromTagWithTemplate(tag: string, template: string): string | undefined {
 	// Escape special regex characters in the template, then replace %s with capture group
 	const escapedTemplate = escapeRegex(template);
-	const versionPattern = escapedTemplate.replace(/%s/g, '(.+)');
+	const versionPattern = escapedTemplate.replace(TEMPLATE_PLACEHOLDER_PATTERN, '(.+)');
 	const match = tag.match(new RegExp(`^${versionPattern}$`));
 	if (match !== null && match.length > 1 && typeof match[1] === 'string') {
 		return match[1];
@@ -47,7 +51,7 @@ export function extractVersionFromTagWithTemplate(tag: string, template: string)
  * @returns Version string with 'v' prefix removed
  */
 export function extractVersionFromTag(tag: string): string {
-	return tag.replace(/^v/, '');
+	return tag.replace(VERSION_PREFIX_PATTERN, '');
 }
 
 /**

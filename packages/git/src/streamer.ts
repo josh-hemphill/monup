@@ -123,7 +123,7 @@ export async function* streamGitCommits(
 	const debugYieldedCommits: ParsedCommit[] = [];
 	function finishCommit() {
 		if (typeof currentCommit !== 'undefined' && currentCommit.hash !== undefined) {
-			const packagesArray = Array.from(touchedPackages).sort();
+			const packagesArray = [...touchedPackages].sort();
 			commitCount++;
 			logger.trace('Yielding commit', { hash: currentCommit.hash?.slice(0, 7), packages: packagesArray });
 			const commit = {

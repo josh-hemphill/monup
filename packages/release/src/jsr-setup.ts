@@ -10,6 +10,7 @@ import { logger } from './logger.ts';
 
 const JSR_API_BASE_URL = 'https://api.jsr.io';
 const JSR_PACKAGE_NAME_PATTERN = /^@([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)$/;
+const JSR_RUNTIME_COMPAT_KEYS = ['browser', 'deno', 'node', 'workerd', 'bun'] as const;
 
 export type JsrReadmeSource = 'readme' | 'jsdoc';
 
@@ -302,9 +303,10 @@ function normalizeRuntimeCompat(runtimeCompat: JsrRuntimeCompat | undefined): Js
 	}
 
 	const normalized: JsrRuntimeCompat = {};
-	for (const [key, value] of Object.entries(runtimeCompat)) {
+	for (const key of JSR_RUNTIME_COMPAT_KEYS) {
+		const value = runtimeCompat[key];
 		if (typeof value === 'boolean' || value === null) {
-			normalized[key as keyof JsrRuntimeCompat] = value;
+			normalized[key] = value;
 		}
 	}
 
@@ -365,7 +367,7 @@ export async function setupJsrPackages(
 ): Promise<JsrPackageSetupResult[]> {
 	const token = resolveJsrSetupToken(options.token);
 	if (typeof token !== 'string') {
-		throw new Error('JSR setup requires the JSR_TOKEN environment variable.');
+		throw new TypeError('JSR setup requires the JSR_TOKEN environment variable.');
 	}
 
 	const targets = await listJsrTargets(packages);

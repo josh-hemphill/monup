@@ -8,11 +8,11 @@ Workspace detection and package metadata for Monup.
 
 ## Main Exports
 
-  - `detectPackages()`: detect packages in pnpm, npm, Deno, or single-package repos.
-  - `getPackageInfo()`: look up one detected package.
-  - `updatePackageVersions()`: write version updates across detected packages.
-  - `registerDetector()`: add custom workspace detectors.
-  - `PackageInfo`: shared package metadata used across Monup packages.
+- `detectPackages()`: detect packages in pnpm, npm, Deno, or single-package repos.
+- `getPackageInfo()`: look up one detected package.
+- `updatePackageVersions()`: write version updates across detected packages.
+- `registerDetector()`: add custom workspace detectors.
+- `PackageInfo`: shared package metadata used across Monup packages.
 
 Each logical package has a canonical `packageFile`, and may also expose `packageFiles` when multiple manifests map to the same package path.
 
@@ -27,5 +27,5 @@ const pkg = await getPackageInfo('@my/package');
 
 ## Related Packages
 
-  - [`@monup/version`](../version/README.md): updates manifest versions for detected packages.
-  - [`@monup/release`](../release/README.md): publishes one target per manifest when needed.
+- [`@monup/version`](../version/README.md): updates manifest versions for detected packages.
+- [`@monup/release`](../release/README.md): publishes one target per manifest when needed.

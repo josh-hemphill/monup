@@ -7,9 +7,10 @@ import { regex } from 'arkregex';
 
 const SHORT_HASH_LENGTH = 7;
 
+const COMMIT_URL_TEMPLATE_REGEX = /\{\{hash\}\}/g;
 /** Builds commit URL by substituting {{hash}} in the template. */
 export function buildCommitUrl(template: string, hash: string): string {
-	return template.replace(/\{\{hash\}\}/g, hash);
+	return template.replace(COMMIT_URL_TEMPLATE_REGEX, hash);
 }
 
 /**

@@ -6,6 +6,8 @@ import { fs, glob, path } from 'zx';
 import { getJsrJson } from '../registries/jsr.ts';
 import { getNpmJson } from '../registries/npm.ts';
 
+const YAML_QUOTE_PATTERN = /['"]/g;
+
 export class PnpmWorkspaceDetector implements WorkspaceDetector {
 	async canHandle(root: string): Promise<boolean> {
 		const workspaceFile = path.resolve(root, 'pnpm-workspace.yaml');
@@ -30,7 +32,7 @@ export class PnpmWorkspaceDetector implements WorkspaceDetector {
 				continue;
 			}
 			if (inPackages && trimmed.startsWith('-')) {
-				const pattern = trimmed.slice(1).trim().replace(/['"]/g, '');
+				const pattern = trimmed.slice(1).trim().replace(YAML_QUOTE_PATTERN, '');
 				patterns.push(pattern);
 			}
 			if (inPackages

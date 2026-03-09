@@ -136,7 +136,7 @@ describe('package-based commit filtering integration', () => {
 
 			// Unscoped commit is in unscopedCommits set
 			expect(unscopedCommits.size).toBe(1);
-			expect(Array.from(unscopedCommits)[0]?.hash).toBe('def456');
+			expect([...unscopedCommits][0]?.hash).toBe('def456');
 
 			// Root package check logic (from version.ts):
 			// isRootPackage = pkg.path === '.' || pkg.path === pkg.root

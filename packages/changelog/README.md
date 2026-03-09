@@ -8,11 +8,11 @@ Changelog generation and extraction for the second Monup workflow step.
 
 ## Main Exports
 
-  - `generateChangelog()`: write a new changelog block for a version.
-  - `runChangelog()`: update root or per-package changelogs across a workspace.
-  - `extractChangelogForVersion()`: read one version block back out of a changelog.
-  - `getLatestVersionFromChangelog()`: detect the latest documented version.
-  - `createVersionMarkers()`, `findVersionMarkers()`, and `findVersionBlocks()`: marker helpers for extraction and sync.
+- `generateChangelog()`: write a new changelog block for a version.
+- `runChangelog()`: update root or per-package changelogs across a workspace.
+- `extractChangelogForVersion()`: read one version block back out of a changelog.
+- `getLatestVersionFromChangelog()`: detect the latest documented version.
+- `createVersionMarkers()`, `findVersionMarkers()`, and `findVersionBlocks()`: marker helpers for extraction and sync.
 
 ## Example
 
@@ -20,14 +20,14 @@ Changelog generation and extraction for the second Monup workflow step.
 import { defaultChangelogOptions, generateChangelog } from '@monup/changelog';
 
 await generateChangelog(
-  '1.1.0',
-  commits,
-  'my-package',
-  defaultChangelogOptions,
+	'1.1.0',
+	commits,
+	'my-package',
+	defaultChangelogOptions,
 );
 ```
 
 ## Related Packages
 
-  - [`@monup/version`](../version/README.md): usually provides the version first.
-  - [`@monup/github`](../github/README.md): extracts release notes from changelog content.
+- [`@monup/version`](../version/README.md): usually provides the version first.
+- [`@monup/github`](../github/README.md): extracts release notes from changelog content.

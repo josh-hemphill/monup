@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { spawnCommand } from '../src/spawn.ts';
 
+const NODE_VERSION_PATTERN = /^v\d+\.\d+\.\d+/;
+
 describe('spawnCommand', () => {
 	it('captures text output', async() => {
 		const result = await spawnCommand('node', ['-e', 'console.log("ok")'], { capture: 'text' });
@@ -18,6 +20,6 @@ describe('spawnCommand', () => {
 		// node is typically in PATH; this exercises spawn with args (no shell interpolation)
 		const result = await spawnCommand('node', ['--version'], { capture: 'text' });
 		expect(typeof result).toBe('string');
-		expect((result as string).trim()).toMatch(/^v\d+\.\d+\.\d+/);
+		expect((result as string).trim()).toMatch(NODE_VERSION_PATTERN);
 	});
 });

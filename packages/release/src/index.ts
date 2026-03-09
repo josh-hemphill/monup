@@ -10,8 +10,18 @@ import { executePublish } from './executor.ts';
 import { resolveReleaseOptions } from './options.ts';
 
 export const _VERSION: string = packageJson.version;
-export { logger } from './logger.ts';
-export type { ReleaseOptions, ReleaseOptionsWithDeps, ResolvedReleaseOptions } from './options.ts';
+export type {
+	JsrAuthorizationPermission,
+	JsrAuthorizationResult,
+	JsrAuthorizationSession,
+} from './jsr-auth.ts';
+export {
+	createJsrAuthorization,
+	JsrAuthorizationDeniedError,
+	JsrAuthorizationTimeoutError,
+	pollJsrAuthorization,
+	resolveJsrSetupToken,
+} from './jsr-auth.ts';
 export type {
 	JsrGitHubRepository,
 	JsrPackageSettings,
@@ -20,11 +30,7 @@ export type {
 	JsrRuntimeCompat,
 	JsrSetupOptions,
 } from './jsr-setup.ts';
-export type {
-	JsrAuthorizationPermission,
-	JsrAuthorizationResult,
-	JsrAuthorizationSession,
-} from './jsr-auth.ts';
+export { setupJsrPackages } from './jsr-setup.ts';
 
 /**
  * Publishes a package
@@ -91,13 +97,7 @@ export async function publishPackages(
 	}
 }
 
+export { logger } from './logger.ts';
+export type { ReleaseOptions, ReleaseOptionsWithDeps, ResolvedReleaseOptions } from './options.ts';
 export { defaultReleaseOptions, resolveReleaseOptions } from './options.ts';
 export { listPublishedVersions } from './registry.ts';
-export {
-	createJsrAuthorization,
-	JsrAuthorizationDeniedError,
-	JsrAuthorizationTimeoutError,
-	pollJsrAuthorization,
-	resolveJsrSetupToken,
-} from './jsr-auth.ts';
-export { setupJsrPackages } from './jsr-setup.ts';

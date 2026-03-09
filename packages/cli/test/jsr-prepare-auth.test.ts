@@ -132,7 +132,7 @@ function createPromptSession(): PromptSession {
 	return {
 		promptText: vi.fn(async(_message: string, defaultValue?: string) => defaultValue ?? ''),
 		confirm: vi.fn(async(_message: string, initialValue?: boolean) => initialValue ?? false),
-		select: vi.fn(async(_message, _options, initialValue) => initialValue),
+		select: vi.fn(async<T extends string>(_message: string, _options: Array<{ value: T; label: string; hint?: string }>, initialValue: T): Promise<T> => initialValue),
 		close: vi.fn(),
 	};
 }
