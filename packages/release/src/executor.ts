@@ -63,8 +63,16 @@ export async function executePublish(
 	const command = contextualizePublishCommand(config.command, config.publishType);
 	logger.trace('Contextualized publish command', { command });
 
-	if (allowDirty && config.publishType === 'npm' && config.command.name === 'pnpm') {
-		command.args.push('--no-git-checks');
+	if (allowDirty) {
+		if (config.publishType === 'npm' && config.command.name === 'pnpm') {
+			command.args.push('--no-git-checks');
+		}
+		else if (config.publishType === 'jsr' && config.command.name === 'deno') {
+			command.args.push('--allow-dirty');
+		}
+		else {
+			throw new Error(`Allow dirty is not supported for ${config.publishType} ${config.command.name}`);
+		}
 	}
 
 	command.args.push(...extraArgs);
