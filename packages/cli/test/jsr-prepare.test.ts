@@ -1,8 +1,8 @@
 import type { ResolvedMonupOptions } from '@monup/options';
 import type { PackageInfo } from '@monup/workspace';
+import type { PromptSession } from '../src/commands/jsr-prepare.ts';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { PromptSession } from '../src/commands/jsr-prepare.ts';
 import { describe, expect, it, vi } from 'vitest';
 import { inferPackageDescription, resolveJsrPrepareInput } from '../src/commands/jsr-prepare.ts';
 
@@ -25,6 +25,11 @@ const packages: PackageInfo[] = [
 ];
 
 const options: ResolvedMonupOptions = {
+	conventional: {
+		scopes: {},
+		types: {},
+		titles: {},
+	},
 	changelog: {
 		location: 'CHANGELOG.md',
 		strategy: 'per-package',
@@ -102,6 +107,7 @@ function createPromptSession(config: {
 	return {
 		promptText: vi.fn(async(_message: string, defaultValue?: string) => textAnswers.shift() ?? defaultValue ?? ''),
 		confirm: vi.fn(async() => confirmAnswers.shift() ?? false),
+		// @ts-expect-error - This is a test mock.
 		select: vi.fn(async<T extends string>(
 			_message: string,
 			_options: Array<{ value: T; label: string; hint?: string }>,
