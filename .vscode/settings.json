@@ -1,4 +1,5 @@
 {
+	"conventionalCommits.promptCI": true,
 	"deno.enable": false,
 	"editor.linkedEditing": true,
 	"editor.formatOnSave": false,
