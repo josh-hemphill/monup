@@ -11,6 +11,7 @@ Package publishing for the Monup release step.
   - `publish()`: publish one package manifest.
   - `publishPackages()`: publish all detected packages with shared context.
   - `listPublishedVersions()`: inspect already published versions.
+  - `setupJsrPackages()`: create JSR package entries and apply shared or per-package settings.
   - `resolveReleaseOptions()`: normalize release options.
   - `defaultReleaseOptions`: shared release defaults.
 
@@ -21,15 +22,33 @@ One logical package can publish more than once when it has multiple manifest fil
   - Publish targets are inferred from the package manifest being handled.
   - Registry and package-manager handling are resolved internally.
   - `dryRun` behavior depends on the resolved release options and CI context.
+  - `setupJsrPackages()` is intended for local JSR package preparation and accepts an explicit token, while the CLI now defaults to interactive browser authorization and only falls back to `JSR_TOKEN` in non-interactive mode.
 
 ## Example
 
 ```ts
-import { publishPackages } from '@monup/release';
+import { publishPackages, setupJsrPackages } from '@monup/release';
 
 await publishPackages(packages, releaseOptions, {
   dryRun: true,
   isCI: false,
+});
+
+await setupJsrPackages(packages, {
+  githubRepository: {
+    owner: 'monup',
+    name: 'monup',
+  },
+  readmeSource: 'readme',
+  runtimeCompat: {
+    node: true,
+    deno: true,
+  },
+  packageOverrides: {
+    '@monup/cli': {
+      description: 'CLI entry point for Monup.',
+    },
+  },
 });
 ```
 

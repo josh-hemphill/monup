@@ -1,0 +1,5 @@
+{
+  "name": "@scope/with-package-description",
+  "version": "1.0.0",
+  "description": "Package description from package.json."
+}

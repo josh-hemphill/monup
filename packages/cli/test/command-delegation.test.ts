@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleChangelog } from '../src/commands/changelog.ts';
 
 import { handleGithub } from '../src/commands/github.ts';
+import { handleJsrPrepare } from '../src/commands/jsr-prepare.ts';
 import { handleRelease } from '../src/commands/release.ts';
 
 const {
@@ -12,6 +13,10 @@ const {
 	runChangelogMock,
 	createReleasesForPackagesMock,
 	publishPackagesMock,
+	createJsrAuthorizationMock,
+	pollJsrAuthorizationMock,
+	resolveJsrSetupTokenMock,
+	setupJsrPackagesMock,
 	getPackagesWithCacheMock,
 	getCachedPackagesMock,
 	getCachedCommitsMock,
@@ -27,6 +32,21 @@ const {
 	runChangelogMock: vi.fn(async() => undefined),
 	createReleasesForPackagesMock: vi.fn(async() => undefined),
 	publishPackagesMock: vi.fn(async() => undefined),
+	createJsrAuthorizationMock: vi.fn(async() => ({
+		verificationUrl: 'https://jsr.io/auth',
+		code: 'ABC123',
+		exchangeToken: 'exchange-token',
+		pollInterval: 1,
+		expiresAt: '2099-01-01T00:00:00.000Z',
+		verifier: 'verifier',
+		challenge: 'challenge',
+	})),
+	pollJsrAuthorizationMock: vi.fn(async() => ({
+		token: 'jsrw_test_token',
+		user: { id: 'user-id', name: 'Test User' },
+	})),
+	resolveJsrSetupTokenMock: vi.fn(() => 'jsrw_test_token'),
+	setupJsrPackagesMock: vi.fn(async() => []),
 	getPackagesWithCacheMock: vi.fn(async() => ([
 		{ name: 'pkg1', path: '/workspace/pkg1', root: '/workspace', packageFile: '/workspace/pkg1/package.json' },
 	])),
@@ -67,7 +87,11 @@ vi.mock('@monup/release', async() => {
 	const actual = await vi.importActual<typeof import('@monup/release')>('@monup/release');
 	return {
 		...actual,
+		createJsrAuthorization: createJsrAuthorizationMock,
+		pollJsrAuthorization: pollJsrAuthorizationMock,
 		publishPackages: publishPackagesMock,
+		resolveJsrSetupToken: resolveJsrSetupTokenMock,
+		setupJsrPackages: setupJsrPackagesMock,
 	};
 });
 
@@ -164,6 +188,10 @@ describe('command delegation', () => {
 		runChangelogMock.mockClear();
 		createReleasesForPackagesMock.mockClear();
 		publishPackagesMock.mockClear();
+		createJsrAuthorizationMock.mockClear();
+		pollJsrAuthorizationMock.mockClear();
+		resolveJsrSetupTokenMock.mockClear();
+		setupJsrPackagesMock.mockClear();
 		getPackagesWithCacheMock.mockClear();
 		getCachedPackagesMock.mockClear();
 		getCachedCommitsMock.mockClear();
@@ -237,6 +265,41 @@ describe('command delegation', () => {
 			expect.objectContaining({ allowDirty: false }),
 			expect.any(Object),
 		);
+	});
+
+	it('delegates jsr prepare command to setupJsrPackages', async() => {
+		getPackagesWithCacheMock.mockResolvedValueOnce([
+			{
+				name: 'pkg1',
+				path: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description',
+				root: '/workspace',
+				packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description/jsr.json',
+			},
+		]);
+
+		await handleJsrPrepare(options, {
+			githubOwner: 'monup',
+			githubName: 'monup',
+			readmeSource: 'readme',
+			runtimeNode: 'supported',
+		});
+
+		expect(setupJsrPackagesMock).toHaveBeenCalledTimes(1);
+		expect(setupJsrPackagesMock).toHaveBeenCalledWith(
+			expect.arrayContaining([
+				expect.objectContaining({
+					packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description/jsr.json',
+				}),
+			]),
+			expect.objectContaining({
+				token: 'jsrw_test_token',
+				githubRepository: { owner: 'monup', name: 'monup' },
+				readmeSource: 'readme',
+				runtimeCompat: { node: true },
+			}),
+		);
+		expect(resolveJsrSetupTokenMock).toHaveBeenCalledTimes(1);
+		expect(createJsrAuthorizationMock).not.toHaveBeenCalled();
 	});
 
 	it('allows bin-only git working tree changes in CI', async() => {

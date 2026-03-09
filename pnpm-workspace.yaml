@@ -1,19 +1,23 @@
 catalogMode: prefer
+
 cleanupUnusedCatalogs: true
 
 ignoreWorkspaceRootCheck: true
 
+includeWorkspaceRoot: true
+
 shamefullyHoist: true
+
 shellEmulator: true
+
 trustPolicy: no-downgrade
-
 packages:
-  - 'packages/*'
-
+  - packages/*
 catalogs:
   build:
-    obuild: ^0.4.31
+    obuild: ^0.4.32
   cli:
+    '@clack/prompts': ^1.1.0
     c12: ^3.3.3
     cac: ^7.0.0
     convert-gitmoji: ^0.1.5
@@ -23,11 +27,12 @@ catalogs:
     semver: ^7.7.4
     zx: ^8.8.5
   dev:
-    '@antfu/eslint-config': ^7.6.1
+    '@antfu/eslint-config': ^7.7.0
     arkregex: ^0.0.5
     cspell: ^9.7.0
-    eslint: ^10.0.2
+    eslint: ^10.0.3
     eslint-plugin-format: ^2.0.1
+    jsonc-eslint-parser: ^3.1.0
     markdownlint-cli2: ^0.21.0
     ts-json-schema-generator: ^2.9.0
     vitest: ^4.0.18
@@ -35,11 +40,9 @@ catalogs:
     loglevel: ^1.9.2
   types:
     '@types/fs-extra': ^11.0.4
-    '@types/node': ^25.3.3
+    '@types/node': ^25.3.5
     '@types/semver': ^7.7.1
     typescript: ^5.9.3
-
-includeWorkspaceRoot: true
 
 onlyBuiltDependencies:
   - esbuild

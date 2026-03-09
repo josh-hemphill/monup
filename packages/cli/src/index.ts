@@ -18,6 +18,7 @@ import { clearCache, initCache } from './cache.ts';
 import { handleAll } from './commands/all.ts';
 import { handleChangelog } from './commands/changelog.ts';
 import { handleGithub } from './commands/github.ts';
+import { handleJsrPrepare } from './commands/jsr-prepare.ts';
 import { handleRelease } from './commands/release.ts';
 import { handleVersion } from './commands/version.ts';
 
@@ -103,6 +104,21 @@ export async function main(): Promise<void> {
 		});
 
 	cli
+		.command('jsr-prepare', 'Prepare JSR package entries for tokenless CI publishing')
+		.option('--github-owner <owner>', 'GitHub repository owner for all packages')
+		.option('--github-name <name>', 'GitHub repository name for all packages')
+		.option('--readme-source <source>', 'Common readme source (readme|jsdoc)')
+		.option('--runtime-browser <compat>', 'Browser compatibility (supported|unsupported|unknown)')
+		.option('--runtime-deno <compat>', 'Deno compatibility (supported|unsupported|unknown)')
+		.option('--runtime-node <compat>', 'Node.js compatibility (supported|unsupported|unknown)')
+		.option('--runtime-workerd <compat>', 'workerd compatibility (supported|unsupported|unknown)')
+		.option('--runtime-bun <compat>', 'Bun compatibility (supported|unsupported|unknown)')
+		.option('--infer-descriptions', 'Infer package descriptions from package.json or README.md')
+		.action(async(options: Record<string, unknown>) => {
+			await handleJsrPrepare(resolvedOptions, options);
+		});
+
+	cli
 		.command('github', 'Create GitHub releases')
 		.action(async() => {
 			await handleGithub(resolvedOptions);
@@ -116,8 +132,8 @@ export async function main(): Promise<void> {
 
 	const versionText = `\n${versions.join('\n')}\n`;
 	cli.version(versionText);
-	cli.help((helpSections) => {
-		const versionSection = helpSections.find((section) => section.body.includes(versionText));
+	cli.help((helpSections: Array<{ body: string }>) => {
+		const versionSection = helpSections.find((section: { body: string }) => section.body.includes(versionText));
 		if (versionSection) {
 			versionSection.body = `Version: ${versions[0]}`;
 		}

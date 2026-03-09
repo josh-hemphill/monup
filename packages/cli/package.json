@@ -10,13 +10,13 @@
   },
   "main": "dist/index.mjs",
   "types": "dist/index.d.mts",
-  "files": [
-    "dist",
-    "bin"
-  ],
   "bin": {
     "monup": "bin/monup.mjs"
   },
+  "files": [
+    "bin",
+    "dist"
+  ],
   "scripts": {
     "build": "node build.config.ts",
     "test": "vitest run",
@@ -24,6 +24,7 @@
     "format": "eslint . --fix"
   },
   "dependencies": {
+    "@clack/prompts": "catalog:cli",
     "@monup/changelog": "workspace:*",
     "@monup/git": "workspace:*",
     "@monup/github": "workspace:*",
@@ -33,7 +34,8 @@
     "@monup/version": "workspace:*",
     "@monup/workspace": "workspace:*",
     "cac": "catalog:cli",
-    "loglevel": "catalog:logging"
+    "loglevel": "catalog:logging",
+	"zx": "catalog:cli"
   },
   "devDependencies": {
     "obuild": "catalog:build"

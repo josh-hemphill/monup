@@ -4,6 +4,7 @@
 import packageJson from '../jsr.json' with { type: 'json' };
 
 export { CI_VARS, detectCI } from './ci.ts';
+export { openExternalUrl } from './browser.ts';
 export { getErrorMessage } from './error-utils.ts';
 export { parseJson, parseJsonc, stripJsoncComments } from './jsonc.ts';
 export { applyLogFormatter } from './log-formatter.ts';
