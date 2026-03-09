@@ -9,6 +9,7 @@ import {
 import { logger } from '../src/logger.ts';
 
 const HEX_TOKEN_PATTERN = /^[a-f0-9]+$/u;
+const BASE64_TOKEN_PATTERN = /^[A-Za-z0-9+/=]+$/u;
 
 describe('jsr auth helpers', () => {
 	const originalToken = process.env.JSR_TOKEN;
@@ -49,7 +50,7 @@ describe('jsr auth helpers', () => {
 		expect(session.challenge).toBeTypeOf('string');
 		expect(session.verifier).not.toBe(session.challenge);
 		expect(session.verifier).toMatch(HEX_TOKEN_PATTERN);
-		expect(session.challenge).toMatch(HEX_TOKEN_PATTERN);
+		expect(session.challenge).toMatch(BASE64_TOKEN_PATTERN);
 		expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.jsr.io/authorizations');
 		expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
 			method: 'POST',

@@ -49,18 +49,13 @@ describe('executePublish', () => {
 	});
 
 	it('does not add pnpm dirty tree bypass for non-pnpm commands', async() => {
-		await executePublish(
+		await expect(executePublish(
 			'/workspace/pkg',
 			createCommandConfig('npm', 'npm'),
 			false,
 			[],
 			true,
-		);
-
-		expect(spawnCommandMock).toHaveBeenCalledWith(
-			'npm',
-			['publish'],
-			{ cwd: '/workspace/pkg', capture: 'inherit' },
-		);
+		)).rejects.toThrow('Allow dirty is not supported for npm npm');
+		expect(spawnCommandMock).not.toHaveBeenCalled();
 	});
 });

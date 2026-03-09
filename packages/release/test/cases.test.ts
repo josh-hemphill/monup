@@ -5,11 +5,41 @@
  */
 
 import type { PackageInfo } from '@monup/workspace';
+import type { CommandConfig } from '../src/detector.ts';
 import type { ReleaseOptionsWithDeps } from '../src/options.ts';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { defaultReleaseOptions } from '../src/options.ts';
 import { publish } from '../src/index.ts';
+
+const { detectPackageManagerMock, executePublishMock } = vi.hoisted(() => ({
+	detectPackageManagerMock: vi.fn(async(pkg: PackageInfo): Promise<CommandConfig> => ({
+		publishType: pkg.packageFile?.endsWith('jsr.json') ? 'jsr' : 'npm',
+		command: {
+			name: pkg.packageFile?.endsWith('jsr.json') ? 'deno' : 'pnpm',
+			agent: pkg.packageFile?.endsWith('jsr.json') ? 'deno' : 'pnpm',
+			version: undefined,
+		},
+	})),
+	executePublishMock: vi.fn(async() => undefined),
+}));
+
+vi.mock('../src/detector.ts', async() => {
+	const actual = await vi.importActual<typeof import('../src/detector.ts')>('../src/detector.ts');
+	return {
+		...actual,
+		detectPackageManager: detectPackageManagerMock,
+	};
+});
+
+vi.mock('../src/executor.ts', async() => {
+	const actual = await vi.importActual<typeof import('../src/executor.ts')>('../src/executor.ts');
+	return {
+		...actual,
+		executePublish: executePublishMock,
+	};
+});
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = join(__dirname, 'fixtures');
@@ -29,36 +59,61 @@ const jsrPackage: PackageInfo = {
 };
 
 describe('release package - shell command test cases', () => {
+	beforeEach(() => {
+		detectPackageManagerMock.mockClear();
+		executePublishMock.mockClear();
+	});
+
 	it('should identify npm package correctly', async() => {
 		const options: ReleaseOptionsWithDeps = {
 			dryRun: true,
 			isCI: false,
 		};
-		// dryRun should not throw for valid npm package structure
-		// (may fail if npm is not available, but that's expected)
-		try {
-			await publish(npmPackage, options);
-		}
-		catch(error) {
-			// Expected if npm is not available or package is invalid
-			expect(error).toBeDefined();
-		}
-	}, 10000); // Increase timeout
+		await publish(npmPackage, options);
+		expect(detectPackageManagerMock).toHaveBeenCalledWith(
+			npmPackage,
+			expect.objectContaining({
+				...defaultReleaseOptions,
+				dryRun: true,
+				isCI: false,
+			}),
+		);
+		expect(executePublishMock).toHaveBeenCalledWith(
+			npmPackage.path,
+			expect.objectContaining({
+				publishType: 'npm',
+				command: expect.objectContaining({ name: 'pnpm' }),
+			}),
+			true,
+			[],
+			false,
+		);
+	});
 
 	it('should identify jsr package correctly', async() => {
 		const options: ReleaseOptionsWithDeps = {
 			dryRun: true,
 			isCI: false,
 		};
-		// dryRun should not throw for valid jsr package structure
-		// (may fail if deno is not available, but that's expected)
-		try {
-			await publish(jsrPackage, options);
-		}
-		catch(error) {
-			// Expected if deno is not available or package is invalid
-			expect(error).toBeDefined();
-		}
+		await publish(jsrPackage, options);
+		expect(detectPackageManagerMock).toHaveBeenCalledWith(
+			jsrPackage,
+			expect.objectContaining({
+				...defaultReleaseOptions,
+				dryRun: true,
+				isCI: false,
+			}),
+		);
+		expect(executePublishMock).toHaveBeenCalledWith(
+			jsrPackage.path,
+			expect.objectContaining({
+				publishType: 'jsr',
+				command: expect.objectContaining({ name: 'deno' }),
+			}),
+			true,
+			[],
+			false,
+		);
 	});
 
 	it('should use dry-run when dryRun is true', async() => {
@@ -66,29 +121,29 @@ describe('release package - shell command test cases', () => {
 			dryRun: true,
 			isCI: false,
 		};
-		// publish with dryRun: true should call dryRun function
-		try {
-			await publish(npmPackage, options);
-		}
-		catch(error) {
-			// Expected if npm is not available
-			expect(error).toBeDefined();
-		}
-	}, 10000); // Increase timeout
+		await publish(npmPackage, options);
+		expect(executePublishMock).toHaveBeenCalledWith(
+			npmPackage.path,
+			expect.any(Object),
+			true,
+			[],
+			false,
+		);
+	});
 
 	it('should use dry-run when dryRun is auto and not in CI', async() => {
 		const options: ReleaseOptionsWithDeps = {
 			dryRun: 'auto',
 			isCI: false, // Should trigger dry-run
 		};
-		// publish with dryRun: 'auto' and isCI: false should call dryRun function
-		try {
-			await publish(npmPackage, options);
-		}
-		catch(error) {
-			// Expected if npm is not available
-			expect(error).toBeDefined();
-		}
+		await publish(npmPackage, options);
+		expect(executePublishMock).toHaveBeenCalledWith(
+			npmPackage.path,
+			expect.any(Object),
+			true,
+			[],
+			false,
+		);
 	});
 
 	it('should not use dry-run when dryRun is auto and in CI', async() => {
@@ -96,14 +151,13 @@ describe('release package - shell command test cases', () => {
 			dryRun: 'auto',
 			isCI: true, // Should NOT trigger dry-run
 		};
-		// publish with dryRun: 'auto' and isCI: true should attempt actual publish
-		// This will fail without credentials, but we verify the logic path
-		try {
-			await publish(npmPackage, options);
-		}
-		catch(error) {
-			// Expected - will fail without npm credentials or if package is invalid
-			expect(error).toBeDefined();
-		}
+		await publish(npmPackage, options);
+		expect(executePublishMock).toHaveBeenCalledWith(
+			npmPackage.path,
+			expect.any(Object),
+			false,
+			[],
+			false,
+		);
 	});
 });
