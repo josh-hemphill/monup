@@ -1,21 +1,26 @@
 import type { ResolvedMonupOptions } from '@monup/options';
 import type { PackageInfo } from '@monup/workspace';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { PromptSession } from '../src/commands/jsr-prepare.ts';
 import { describe, expect, it, vi } from 'vitest';
 import { inferPackageDescription, resolveJsrPrepareInput } from '../src/commands/jsr-prepare.ts';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const fixturesDir = join(__dirname, 'fixtures');
+
 const packages: PackageInfo[] = [
 	{
 		name: 'with-package-description',
-		path: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description',
+		path: join(fixturesDir, 'with-package-description'),
 		root: '/workspace',
-		packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description/jsr.json',
+		packageFile: join(fixturesDir, 'with-package-description', 'jsr.json'),
 	},
 	{
 		name: 'readme-only',
-		path: 'E:/Share/dev/monup/packages/cli/test/fixtures/readme-only',
+		path: join(fixturesDir, 'readme-only'),
 		root: '/workspace',
-		packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/readme-only/jsr.json',
+		packageFile: join(fixturesDir, 'readme-only', 'jsr.json'),
 	},
 ];
 

@@ -1,20 +1,25 @@
 import type { PackageInfo } from '@monup/workspace';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupJsrPackages } from '../src/index.ts';
 import { logger } from '../src/logger.ts';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const fixturesDir = join(__dirname, 'fixtures');
 
 const packages: PackageInfo[] = [
 	{
 		name: 'test-jsr-package',
 		path: '/workspace/jsr-package',
 		root: '/workspace',
-		packageFile: 'E:/Share/dev/monup/packages/release/test/fixtures/jsr-package/jsr.json',
+		packageFile: join(fixturesDir, 'jsr-package', 'jsr.json'),
 	},
 	{
 		name: 'test-npm-package',
 		path: '/workspace/npm-package',
 		root: '/workspace',
-		packageFile: 'E:/Share/dev/monup/packages/release/test/fixtures/npm-package/package.json',
+		packageFile: join(fixturesDir, 'npm-package', 'package.json'),
 	},
 ];
 

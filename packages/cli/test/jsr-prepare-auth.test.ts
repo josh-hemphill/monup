@@ -30,9 +30,9 @@ const {
 	getPackagesWithCacheMock: vi.fn(async() => ([
 		{
 			name: 'pkg1',
-			path: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description',
+			path: 'packages/cli/test/fixtures/with-package-description',
 			root: '/workspace',
-			packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description/jsr.json',
+			packageFile: 'packages/cli/test/fixtures/with-package-description/jsr.json',
 		},
 	])),
 }));
@@ -63,6 +63,11 @@ vi.mock('../src/package-utils.ts', () => ({
 const { handleJsrPrepare, resolveJsrPrepareToken } = await import('../src/commands/jsr-prepare.ts');
 
 const options: ResolvedMonupOptions = {
+	conventional: {
+		scopes: {},
+		types: {},
+		titles: {},
+	},
 	changelog: {
 		location: 'CHANGELOG.md',
 		strategy: 'per-package',
@@ -129,10 +134,16 @@ const options: ResolvedMonupOptions = {
 };
 
 function createPromptSession(): PromptSession {
+	const select: PromptSession['select'] = vi.fn(async<T extends string>(
+		_message: string,
+		_options: Array<{ value: T; label: string; hint?: string }>,
+		initialValue: T,
+	): Promise<T> => initialValue) as PromptSession['select'];
+
 	return {
 		promptText: vi.fn(async(_message: string, defaultValue?: string) => defaultValue ?? ''),
 		confirm: vi.fn(async(_message: string, initialValue?: boolean) => initialValue ?? false),
-		select: vi.fn(async<T extends string>(_message: string, _options: Array<{ value: T; label: string; hint?: string }>, initialValue: T): Promise<T> => initialValue),
+		select,
 		close: vi.fn(),
 	};
 }

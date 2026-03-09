@@ -1,10 +1,17 @@
 import type { ResolvedMonupOptions } from '@monup/options';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleChangelog } from '../src/commands/changelog.ts';
 
 import { handleGithub } from '../src/commands/github.ts';
 import { handleJsrPrepare } from '../src/commands/jsr-prepare.ts';
 import { handleRelease } from '../src/commands/release.ts';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const fixturesDir = join(__dirname, 'fixtures');
+const withPackageDescriptionPath = join(fixturesDir, 'with-package-description');
+const withPackageDescriptionManifestPath = join(withPackageDescriptionPath, 'jsr.json');
 
 const {
 	getCommitsMock,
@@ -271,9 +278,9 @@ describe('command delegation', () => {
 		getPackagesWithCacheMock.mockResolvedValueOnce([
 			{
 				name: 'pkg1',
-				path: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description',
+				path: withPackageDescriptionPath,
 				root: '/workspace',
-				packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description/jsr.json',
+				packageFile: withPackageDescriptionManifestPath,
 			},
 		]);
 
@@ -288,7 +295,7 @@ describe('command delegation', () => {
 		expect(setupJsrPackagesMock).toHaveBeenCalledWith(
 			expect.arrayContaining([
 				expect.objectContaining({
-					packageFile: 'E:/Share/dev/monup/packages/cli/test/fixtures/with-package-description/jsr.json',
+					packageFile: withPackageDescriptionManifestPath,
 				}),
 			]),
 			expect.objectContaining({
