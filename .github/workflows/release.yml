@@ -126,10 +126,6 @@ jobs:
           printf '%s\n' "$status"
           exit 1
 
-      - name: Configure npm auth
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
-
       - name: Publish packages
         run: node packages/cli/bin/monup.mjs release --log-level debug
         env:
