@@ -2,7 +2,6 @@
 	"name": "@monup/version",
 	"type": "module",
 	"version": "0.2.1",
-	"private": true,
 	"exports": {
 		"types": "./dist/index.d.mts",
 		"import": "./dist/index.mjs",
