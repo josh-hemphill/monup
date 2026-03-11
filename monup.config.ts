@@ -18,8 +18,7 @@ const config: MonupOptions = defineConfig({
 	},
 	release: {
 		dryRun: 'auto', // Dry run locally, publish in CI
-		// TODO: After migrating to OIDC trusted publishing, uncomment for npm attestation:
-		publishArgs: ['--no-provenance'],
+		publishArgs: ['--provenance'],
 	},
 	github: {
 		changelogMethod: 'auto',
