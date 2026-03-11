@@ -4,7 +4,7 @@
 import type { PackageInfo } from '@monup/workspace';
 import { parseJsonc } from '@monup/utils';
 import { fs } from 'zx';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { resolveJsrSetupToken } from './jsr-auth.ts';
 import { logger } from './logger.ts';
 

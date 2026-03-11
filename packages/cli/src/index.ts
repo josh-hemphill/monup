@@ -13,7 +13,7 @@ import { _VERSION as versionVersion } from '@monup/version';
 import { _VERSION as workspaceVersion } from '@monup/workspace';
 import { cac } from 'cac';
 import loglevel from 'loglevel';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { clearCache, initCache } from './cache.ts';
 import { handleAll } from './commands/all.ts';
 import { handleChangelog } from './commands/changelog.ts';

@@ -11,7 +11,7 @@ import { defaultReleaseOptions } from '@monup/release';
 import { detectCI, mergeWithDefaults } from '@monup/utils';
 import { defaultVersionOptions } from '@monup/version';
 import { loadConfig } from 'c12';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { defaultCoreOptions } from './defaults.ts';
 
 export const _VERSION: string = packageJson.version;

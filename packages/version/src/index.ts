@@ -18,7 +18,7 @@ import {
 } from '@monup/git';
 import { defaultGitHubOptions, listReleases } from '@monup/github';
 import { listPublishedVersions, resolveReleaseOptions } from '@monup/release';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { calculateBumpType, calculateNextVersion, getCurrentVersion } from './calculator.ts';
 import { logger } from './logger.ts';
 /**

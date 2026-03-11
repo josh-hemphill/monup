@@ -6,7 +6,7 @@ import type { ParsedCommit } from './parser.ts';
 import { cwd, stderr } from 'node:process';
 import { regex } from 'arkregex';
 import { $ } from 'zx';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { filterCommitsByPackage } from './filter.ts';
 import { logger } from './logger.ts';
 import { parseGitLog } from './parser.ts';

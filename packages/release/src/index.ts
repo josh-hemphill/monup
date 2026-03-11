@@ -4,7 +4,7 @@
 
 import type { PackageInfo } from '@monup/workspace';
 import type { ReleaseOptionsWithDeps } from './options.ts';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { detectPackageManager } from './detector.ts';
 import { executePublish } from './executor.ts';
 import { resolveReleaseOptions } from './options.ts';

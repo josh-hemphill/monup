@@ -1,7 +1,7 @@
 /**
  * Shared utilities for monup packages
  */
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 
 export { openExternalUrl } from './browser.ts';
 export { CI_VARS, detectCI } from './ci.ts';

@@ -3,7 +3,7 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { env } from 'node:process';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { logger } from './logger.ts';
 
 const JSR_API_BASE_URL = 'https://api.jsr.io';

@@ -12,7 +12,7 @@ import { filterCommitsByPackage, getCommits, getFirstCommit, getGitHubRepo, getG
 import { sortVersionsDescending } from '@monup/utils';
 import { getPreviousVersion } from '@monup/version';
 import { fs } from 'zx';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { formatChangelogSections, groupCommits } from './formatter.ts';
 import { logger } from './logger.ts';
 import { createVersionMarkers, extractVersionChangelog, findVersionBlocks, findVersionMarkers } from './markers.ts';

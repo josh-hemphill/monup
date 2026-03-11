@@ -6,7 +6,7 @@ import type { GitOptions } from '@monup/git';
 import type { PackageInfo } from '@monup/workspace';
 import { formatTag } from '@monup/git';
 import { getCurrentVersionFromFile } from '@monup/version';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { createRelease } from './release.ts';
 
 export { extractChangelogForRelease } from './extractor.ts';

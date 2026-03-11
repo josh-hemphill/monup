@@ -4,7 +4,7 @@ import type { PackageInfo } from './plugins/index.ts';
  */
 import { cwd } from 'node:process';
 import { updateVersionInFile } from '@monup/version';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 import { logger } from './logger.ts';
 import { DenoWorkspaceDetector, getDenoJson } from './plugins/deno.ts';
 import { getHandlers, registerDetector } from './plugins/index.ts';

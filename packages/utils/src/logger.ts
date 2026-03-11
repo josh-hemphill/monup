@@ -3,7 +3,7 @@
  */
 import type { Logger } from 'loglevel';
 import loglevel from 'loglevel';
-import packageJson from '../jsr.json' with { type: 'json' };
+import packageJson from '../package.json' with { type: 'json' };
 
 /**
  * Creates a logger instance for a package
