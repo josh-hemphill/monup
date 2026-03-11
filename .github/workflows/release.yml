@@ -20,7 +20,7 @@ on:
 # 4. Remove NPM_TOKEN from secrets and env
 permissions:
   contents: write # For GitHub releases and pushing tags
-  id-token: write  # Uncomment for OIDC trusted publishing (Phase 2)
+  id-token: write # Uncomment for OIDC trusted publishing (Phase 2)
 
 env:
   # Phase 1: Token-based authentication

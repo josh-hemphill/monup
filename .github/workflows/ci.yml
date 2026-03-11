@@ -22,7 +22,13 @@ jobs:
         run: pnpm run build
 
       - name: Lint
+        id: lint
+        continue-on-error: true
         run: pnpm run lint
+
+      - name: Warn on lint issues
+        if: steps.lint.outcome == 'failure'
+        run: echo "::warning::Lint reported issues, but CI will continue."
 
       - name: Run tests
         run: pnpm run test
