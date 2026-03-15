@@ -8,7 +8,7 @@ import type { ChangelogOptions } from './options.ts';
  */
 import { dirname, resolve } from 'node:path';
 import { cwd } from 'node:process';
-import { filterCommitsByPackage, getCommits, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastPackageTag, getLastTag, getPackageTagHistory } from '@monup/git';
+import { filterCommitsByPackage, getCommits, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastPackageTag, getLastTag, getPackageTagHistory, getRefDate } from '@monup/git';
 import { sortVersionsDescending } from '@monup/utils';
 import { getPreviousVersion } from '@monup/version';
 import { fs } from 'zx';
@@ -64,6 +64,7 @@ async function buildChangelogEntry(
 	commits: ParsedCommit[],
 	packageName: string,
 	options: ChangelogOptions,
+	dateOverride?: string,
 ): Promise<string> {
 	logger.debug('Building changelog entry', { version, packageName, commitCount: commits.length });
 	const grouped = groupCommits(commits, options);
@@ -76,7 +77,9 @@ async function buildChangelogEntry(
 		}
 	}
 	const markers = createVersionMarkers(version, packageName);
-	const date = new Date().toISOString().split('T')[0];
+	const date = typeof dateOverride === 'string' && dateOverride.length > 0
+		? dateOverride
+		: new Date().toISOString().split('T')[0];
 	const header = `## ${packageName}@${version} - ${date}`;
 	return [markers.start, header, '', ...sections, markers.end].join('\n');
 }
@@ -189,7 +192,14 @@ async function buildGlobalBootstrapBlocks(
 		const commitsForBlock = typeof targetPackage === 'object'
 			? selectCommitsForPackage(intervalCommits, targetPackage, packages)
 			: intervalCommits;
-		const block = await buildChangelogEntry(currentTag.version, commitsForBlock, packageName, options);
+		const tagDate = await getRefDate(currentTag.tag, root);
+		const block = await buildChangelogEntry(
+			currentTag.version,
+			commitsForBlock,
+			packageName,
+			options,
+			tagDate,
+		);
 		blocksByVersion.set(currentTag.version, block);
 	}
 
@@ -216,7 +226,14 @@ async function buildPackageBootstrapBlocks(
 		const fromRef = typeof previousTag?.tag === 'string' ? previousTag.tag : firstCommit;
 		const intervalCommits = await getCommits(fromRef, currentTag.tag, allPackages, root);
 		const packageCommits = selectCommitsForPackage(intervalCommits, pkg, allPackages);
-		const block = await buildChangelogEntry(currentTag.version, packageCommits, pkg.name, options);
+		const tagDate = await getRefDate(currentTag.tag, root);
+		const block = await buildChangelogEntry(
+			currentTag.version,
+			packageCommits,
+			pkg.name,
+			options,
+			tagDate,
+		);
 		blocksByVersion.set(currentTag.version, block);
 	}
 

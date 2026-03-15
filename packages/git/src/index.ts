@@ -456,6 +456,25 @@ export async function getFirstCommit(root: string = cwd()): Promise<string | und
 }
 
 /**
+ * Returns the author date of the commit pointed to by a ref (tag or commit), YYYY-MM-DD.
+ * @param ref - Tag name or commit hash
+ * @param root - Root directory for git operations (default: current working directory)
+ */
+export async function getRefDate(ref: string, root: string = cwd()): Promise<string | undefined> {
+	try {
+		const { stdout } = await spawnGit(
+			['log', '-1', '--format=%ad', '--date=short', ref],
+			{ cwd: root, stdio: 'pipe' },
+		);
+		const trimmed = stdout.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+	catch {
+		return undefined;
+	}
+}
+
+/**
  * Gets GitHub repository info from git remote
  * @param baseUrl - Base URL for GitHub (default: 'github.com')
  * @param root - Root directory for git operations (default: current working directory)

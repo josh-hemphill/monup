@@ -7,7 +7,7 @@
 import { tmpdir } from 'node:os';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { $, cd, fs, path } from 'zx';
-import { assertCleanWorkingTree, createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastTag, getPackageTagHistory, getWorkingTreeStatus, isPrerelease } from '../src/index.ts';
+import { assertCleanWorkingTree, createCommit, getCommits, getCurrentBranch, getFirstCommit, getGitHubRepo, getGlobalTagHistory, getLastTag, getPackageTagHistory, getRefDate, getWorkingTreeStatus, isPrerelease } from '../src/index.ts';
 import { mockPackages } from './mock.ts';
 
 describe('git package - shell command test cases', () => {
@@ -157,6 +157,13 @@ describe('git package - shell command test cases', () => {
 		expect(typeof firstCommit).toBe('string');
 		const commit = firstCommit as string;
 		expect(commit.length).toBeGreaterThanOrEqual(7);
+	});
+
+	it('should get ref date (YYYY-MM-DD) for a tag', async() => {
+		const date = await getRefDate('v1.0.0', testRepoDir);
+		expect(date).toBeDefined();
+		expect(typeof date).toBe('string');
+		expect(/^\d{4}-\d{2}-\d{2}$/.test(date as string)).toBe(true);
 	});
 
 	it('should get GitHub repository info', async() => {
