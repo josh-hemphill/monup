@@ -1,14 +1,21 @@
 # Changelog
 
+<!-- monup:version:0.2.1:@monup/options:start -->
+## @monup/options@0.2.1 - 2026-03-15
+
+No significant changes
+
+<!-- monup:version:0.2.1:@monup/options:end -->
+
 <!-- monup:version:0.2.0:@monup/options:start -->
-## @monup/options@0.2.0 - 2026-03-09
+## @monup/options@0.2.0 - 2026-03-04
 
 No significant changes
 
 <!-- monup:version:0.2.0:@monup/options:end -->
 
 <!-- monup:version:0.1.0:@monup/options:start -->
-## @monup/options@0.1.0 - 2026-03-09
+## @monup/options@0.1.0 - 2026-02-22
 
 ### 🚀 Features
 

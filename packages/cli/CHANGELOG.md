@@ -1,5 +1,24 @@
 # Changelog
 
+<!-- monup:version:0.3.2:@monup/cli:start -->
+## @monup/cli@0.3.2 - 2026-03-15
+
+No significant changes
+
+<!-- monup:version:0.3.2:@monup/cli:end -->
+
+<!-- monup:version:0.3.1:@monup/cli:start -->
+## @monup/cli@0.3.1 - 2026-03-15
+
+### 🐞 Bug Fixes
+
+#### release
+
+- Allow explicit override of dryrun config ([8612bdb](https://github.com/josh-hemphill/monup/commit/8612bdbe566b36fc01c25fb035c43268ea790437))
+
+
+<!-- monup:version:0.3.1:@monup/cli:end -->
+
 <!-- monup:version:0.3.0:@monup/cli:start -->
 ## @monup/cli@0.3.0 - 2026-03-09
 
@@ -13,7 +32,7 @@
 <!-- monup:version:0.3.0:@monup/cli:end -->
 
 <!-- monup:version:0.2.1:@monup/cli:start -->
-## @monup/cli@0.2.1 - 2026-03-09
+## @monup/cli@0.2.1 - 2026-03-08
 
 ### 🐞 Bug Fixes
 
@@ -30,7 +49,7 @@
 <!-- monup:version:0.2.1:@monup/cli:end -->
 
 <!-- monup:version:0.2.0:@monup/cli:start -->
-## @monup/cli@0.2.0 - 2026-03-09
+## @monup/cli@0.2.0 - 2026-03-04
 
 ### 🚀 Features
 
@@ -49,7 +68,7 @@
 <!-- monup:version:0.2.0:@monup/cli:end -->
 
 <!-- monup:version:0.1.0:@monup/cli:start -->
-## @monup/cli@0.1.0 - 2026-03-09
+## @monup/cli@0.1.0 - 2026-02-22
 
 ### 🚀 Features
 
