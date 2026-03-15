@@ -95,12 +95,17 @@ export async function main(): Promise<void> {
 	cli
 		.command('release', 'Publish packages to npm/JSR')
 		.option('--dry-run', 'Only validate, do not publish')
+		.option('--no-dry-run', 'Publish (override config dry-run)')
 		.action(async(options: Record<string, unknown>) => {
-			const dryRun = Boolean(typeof options.dryRun === 'boolean' && options.dryRun);
-			if (dryRun) {
+			const dryRunOpt = options.dryRun as boolean | undefined;
+			if (dryRunOpt === true) {
 				resolvedOptions.release.dryRun = true;
 			}
-			await handleRelease(resolvedOptions, dryRun);
+			else if (dryRunOpt === false) {
+				resolvedOptions.release.dryRun = false;
+			}
+			const dryRunOnly = dryRunOpt === true;
+			await handleRelease(resolvedOptions, dryRunOnly);
 		});
 
 	cli
