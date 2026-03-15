@@ -2,6 +2,9 @@
 	"name": "@monup/changelog",
 	"type": "module",
 	"version": "0.2.1",
+	"publishConfig": {
+		"access": "public"
+	},
 	"exports": {
 		"types": "./dist/index.d.mts",
 		"import": "./dist/index.mjs",
