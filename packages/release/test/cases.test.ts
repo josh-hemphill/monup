@@ -87,6 +87,7 @@ describe('release package - shell command test cases', () => {
 			true,
 			[],
 			false,
+			npmPackage.root,
 		);
 	});
 
@@ -113,6 +114,7 @@ describe('release package - shell command test cases', () => {
 			true,
 			[],
 			false,
+			jsrPackage.root,
 		);
 	});
 
@@ -128,6 +130,7 @@ describe('release package - shell command test cases', () => {
 			true,
 			[],
 			false,
+			npmPackage.root,
 		);
 	});
 
@@ -143,6 +146,7 @@ describe('release package - shell command test cases', () => {
 			true,
 			[],
 			false,
+			npmPackage.root,
 		);
 	});
 
@@ -158,6 +162,7 @@ describe('release package - shell command test cases', () => {
 			false,
 			[],
 			false,
+			npmPackage.root,
 		);
 	});
 });

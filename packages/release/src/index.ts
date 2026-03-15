@@ -6,7 +6,7 @@ import type { PackageInfo } from '@monup/workspace';
 import type { ReleaseOptionsWithDeps } from './options.ts';
 import packageJson from '../package.json' with { type: 'json' };
 import { detectPackageManager } from './detector.ts';
-import { executePublish } from './executor.ts';
+import { executePublish, executePublishRecursivePnpm } from './executor.ts';
 import { resolveReleaseOptions } from './options.ts';
 
 export const _VERSION: string = packageJson.version;
@@ -49,7 +49,14 @@ export async function publish(
 
 	// Actual publish
 	const config = await detectPackageManager(pkg, resolvedOptions);
-	await executePublish(pkg.path, config, shouldDryRun, resolvedOptions.publishArgs, resolvedOptions.allowDirty);
+	await executePublish(
+		pkg.path,
+		config,
+		shouldDryRun,
+		resolvedOptions.publishArgs,
+		resolvedOptions.allowDirty,
+		pkg.root,
+	);
 }
 
 export interface PublishPackagesContext {
@@ -73,14 +80,49 @@ function getPublishTargets(pkg: PackageInfo): PackageInfo[] {
 	}));
 }
 
+function isNpmTarget(target: PackageInfo): boolean {
+	return typeof target.packageFile === 'string' && target.packageFile.endsWith('package.json');
+}
+
 /**
  * Publishes all packages with shared release context.
+ * When all targets are npm and manager is pnpm, runs a single pnpm -r publish from root for one-time auth.
  */
 export async function publishPackages(
 	packages: PackageInfo[],
 	options: ReleaseOptionsWithDeps,
 	context: PublishPackagesContext = {},
 ): Promise<void> {
+	const resolvedOptions = resolveReleaseOptions(options);
+	const isCI = resolvedOptions.isCI ?? false;
+	const shouldDryRun = resolvedOptions.dryRun === true
+		|| (resolvedOptions.dryRun === 'auto' && !isCI);
+	const mergedDryRun = context.dryRun === true ? true : shouldDryRun;
+
+	const targets = packages.flatMap(getPublishTargets);
+	const allNpmTargets = targets.filter(isNpmTarget);
+	const useRecursivePnpm = allNpmTargets.length > 0
+		&& allNpmTargets.length === targets.length;
+
+	if (useRecursivePnpm) {
+		const firstNpmTarget = allNpmTargets[0];
+		if (firstNpmTarget === undefined) {
+			throw new Error('Unexpected empty allNpmTargets');
+		}
+		const workspaceRoot = firstNpmTarget.root;
+		const config = await detectPackageManager(firstNpmTarget, resolvedOptions);
+		if (config.command.name === 'pnpm') {
+			await executePublishRecursivePnpm(
+				workspaceRoot,
+				config,
+				mergedDryRun,
+				resolvedOptions.publishArgs,
+				resolvedOptions.allowDirty,
+			);
+			return;
+		}
+	}
+
 	for (const pkg of packages) {
 		for (const publishTarget of getPublishTargets(pkg)) {
 			const mergedOptions: ReleaseOptionsWithDeps = {

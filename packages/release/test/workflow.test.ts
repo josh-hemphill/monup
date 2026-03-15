@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { publishPackages } from '../src/index.ts';
 
-const { detectPackageManagerMock, executePublishMock } = vi.hoisted(() => ({
+const { detectPackageManagerMock, executePublishMock, executePublishRecursivePnpmMock } = vi.hoisted(() => ({
 	detectPackageManagerMock: vi.fn(async(pkg: PackageInfo) => ({
 		publishType: pkg.packageFile?.endsWith('jsr.json') ? 'jsr' : 'npm',
 		command: {
@@ -11,6 +11,7 @@ const { detectPackageManagerMock, executePublishMock } = vi.hoisted(() => ({
 		},
 	})),
 	executePublishMock: vi.fn(async() => undefined),
+	executePublishRecursivePnpmMock: vi.fn(async() => undefined),
 }));
 
 vi.mock('../src/detector.ts', async() => {
@@ -26,6 +27,7 @@ vi.mock('../src/executor.ts', async() => {
 	return {
 		...actual,
 		executePublish: executePublishMock,
+		executePublishRecursivePnpm: executePublishRecursivePnpmMock,
 	};
 });
 
@@ -38,22 +40,29 @@ describe('publishPackages', () => {
 	beforeEach(() => {
 		detectPackageManagerMock.mockClear();
 		executePublishMock.mockClear();
+		executePublishRecursivePnpmMock.mockClear();
 	});
 
-	it('publishes all packages with merged context', async() => {
+	it('runs single pnpm -r publish when all targets are npm and manager is pnpm', async() => {
 		await publishPackages(
 			packages,
 			{ dryRun: 'auto', isCI: false, allowDirty: true },
 			{ isCI: true, dryRun: true },
 		);
 
-		expect(detectPackageManagerMock).toHaveBeenCalledTimes(2);
-		expect(executePublishMock).toHaveBeenCalledTimes(2);
-		expect(executePublishMock).toHaveBeenNthCalledWith(1, '/workspace/pkg1', expect.any(Object), true, [], true);
-		expect(executePublishMock).toHaveBeenNthCalledWith(2, '/workspace/pkg2', expect.any(Object), true, [], true);
+		expect(detectPackageManagerMock).toHaveBeenCalledTimes(1);
+		expect(executePublishRecursivePnpmMock).toHaveBeenCalledTimes(1);
+		expect(executePublishRecursivePnpmMock).toHaveBeenCalledWith(
+			'/workspace',
+			expect.objectContaining({ publishType: 'npm', command: { name: 'pnpm' } }),
+			true,
+			[],
+			true,
+		);
+		expect(executePublishMock).not.toHaveBeenCalled();
 	});
 
-	it('publishes each manifest for packages with packageFiles', async() => {
+	it('publishes each manifest per target when mixed npm and JSR', async() => {
 		await publishPackages(
 			[
 				{
@@ -90,6 +99,7 @@ describe('publishPackages', () => {
 			true,
 			[],
 			false,
+			'/workspace',
 		);
 		expect(executePublishMock).toHaveBeenNthCalledWith(
 			2,
@@ -98,6 +108,8 @@ describe('publishPackages', () => {
 			true,
 			[],
 			false,
+			'/workspace',
 		);
+		expect(executePublishRecursivePnpmMock).not.toHaveBeenCalled();
 	});
 });

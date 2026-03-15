@@ -6,12 +6,14 @@ import type { PackageInfo } from '@monup/workspace';
 import type { AgentName } from 'package-manager-detector';
 import type { MockedFunction } from 'vitest';
 import type { ReleaseOptions } from '../src/options.ts';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as pmd from 'package-manager-detector';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as zx from 'zx';
-import { detectPackageManager } from '../src/detector.ts';
+import { detectPackageManager, getPublishBranch } from '../src/detector.ts';
 import { resolveReleaseOptions } from '../src/options.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -543,6 +545,40 @@ describe('detector', () => {
 			await expect(detectPackageManager(pkg, resolveReleaseOptions(options))).rejects.toThrow(
 				'Unknown package type',
 			);
+		});
+	});
+
+	describe('getPublishBranch', () => {
+		it('returns branch value when pnpm-workspace.yaml has publishBranch', async() => {
+			const tmp = mkdtempSync(join(tmpdir(), 'monup-detector-'));
+			try {
+				writeFileSync(join(tmp, 'pnpm-workspace.yaml'), 'packages:\n  - "packages/*"\npublishBranch: latest\n', 'utf-8');
+				expect(await getPublishBranch(tmp)).toBe('latest');
+			}
+			finally {
+				rmSync(tmp, { recursive: true });
+			}
+		});
+
+		it('returns undefined when pnpm-workspace.yaml does not exist', async() => {
+			const tmp = mkdtempSync(join(tmpdir(), 'monup-detector-'));
+			try {
+				expect(await getPublishBranch(tmp)).toBeUndefined();
+			}
+			finally {
+				rmSync(tmp, { recursive: true });
+			}
+		});
+
+		it('returns undefined when file has no publishBranch line', async() => {
+			const tmp = mkdtempSync(join(tmpdir(), 'monup-detector-'));
+			try {
+				writeFileSync(join(tmp, 'pnpm-workspace.yaml'), 'packages:\n  - "packages/*"\n', 'utf-8');
+				expect(await getPublishBranch(tmp)).toBeUndefined();
+			}
+			finally {
+				rmSync(tmp, { recursive: true });
+			}
 		});
 	});
 });

@@ -6,6 +6,7 @@
 import type { DetectResult } from 'package-manager-detector';
 import type { CommandConfig, PublishType } from './detector.ts';
 import { resolveCommand } from 'package-manager-detector';
+import { getPublishBranch } from './detector.ts';
 import { logger } from './logger.ts';
 import { spawnCommand } from './spawn.ts';
 
@@ -58,6 +59,7 @@ export async function executePublish(
 	dryRun: boolean,
 	extraArgs: string[] = [],
 	allowDirty = false,
+	workspaceRoot?: string,
 ): Promise<void> {
 	logger.trace('Contextualizing publish command', { config });
 	const command = contextualizePublishCommand(config.command, config.publishType);
@@ -79,6 +81,13 @@ export async function executePublish(
 		}
 	}
 
+	if (config.command.name === 'pnpm' && typeof workspaceRoot === 'string') {
+		const publishBranch = await getPublishBranch(workspaceRoot);
+		if (typeof publishBranch === 'string') {
+			command.args.push('--publish-branch', publishBranch);
+		}
+	}
+
 	command.args.push(...extraArgs);
 
 	if (dryRun) {
@@ -91,4 +100,39 @@ export async function executePublish(
 	});
 
 	await spawnCommand(command.command, command.args, { cwd, capture: 'inherit' });
+}
+
+/**
+ * Executes pnpm -r publish from workspace root for single-auth workspace publish.
+ */
+export async function executePublishRecursivePnpm(
+	workspaceRoot: string,
+	config: CommandConfig,
+	dryRun: boolean,
+	extraArgs: string[] = [],
+	allowDirty = false,
+): Promise<void> {
+	if (config.publishType !== 'npm' || config.command.name !== 'pnpm') {
+		throw new Error('executePublishRecursivePnpm requires pnpm and npm publish type');
+	}
+	const command: ContextualizedCommand = {
+		command: 'pnpm',
+		args: ['-r', 'publish'],
+	};
+	if (allowDirty) {
+		command.args.push('--no-git-checks');
+	}
+	const publishBranch = await getPublishBranch(workspaceRoot);
+	if (typeof publishBranch === 'string') {
+		command.args.push('--publish-branch', publishBranch);
+	}
+	command.args.push(...extraArgs);
+	if (dryRun) {
+		command.args.push('--dry-run');
+	}
+	logger.debug('Executing recursive pnpm publish', {
+		...command,
+		cwd: workspaceRoot,
+	});
+	await spawnCommand(command.command, command.args, { cwd: workspaceRoot, capture: 'inherit' });
 }

@@ -120,6 +120,31 @@ async function pathExists(filePath: string): Promise<boolean> {
 	}
 }
 
+/** Captures branch name without overlapping \s* (avoids ReDoS from \s* and .+ exchanging). */
+const PUBLISH_BRANCH_LINE_PATTERN = /^\s*publishBranch:\s*(\S+)$/m;
+
+/**
+ * Reads publishBranch from workspace root pnpm-workspace.yaml if present.
+ */
+export async function getPublishBranch(workspaceRoot: string): Promise<string | undefined> {
+	const filePath = resolve(workspaceRoot, 'pnpm-workspace.yaml');
+	if (!(await pathExists(filePath))) {
+		return undefined;
+	}
+	try {
+		const content = await readFile(filePath, 'utf-8');
+		const match = content.match(PUBLISH_BRANCH_LINE_PATTERN);
+		if (!match || typeof match[1] !== 'string') {
+			return undefined;
+		}
+		const value = match[1].trim().replace(YAML_QUOTE_PATTERN, '');
+		return value.length > 0 ? value : undefined;
+	}
+	catch {
+		return undefined;
+	}
+}
+
 /**
  * Workspace detection result
  */
