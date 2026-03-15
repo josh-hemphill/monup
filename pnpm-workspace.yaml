@@ -10,6 +10,8 @@ shamefullyHoist: true
 
 shellEmulator: true
 
+publishBranch: latest
+
 trustPolicy: no-downgrade
 packages:
   - packages/*
