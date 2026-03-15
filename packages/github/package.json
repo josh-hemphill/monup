@@ -1,34 +1,34 @@
 {
-	"name": "@monup/github",
-	"type": "module",
-	"version": "0.2.0",
-	"publishConfig": {
-		"access": "public"
-	},
-	"exports": {
-		"types": "./dist/index.d.mts",
-		"import": "./dist/index.mjs",
-		"typescript": "./src/index.ts"
-	},
-	"main": "dist/index.mjs",
-	"types": "dist/index.d.mts",
-	"files": [
-		"dist"
-	],
-	"scripts": {
-		"build": "node build.config.ts",
-		"test": "vitest run",
-		"lint": "eslint .",
-		"format": "eslint . --fix"
-	},
-	"dependencies": {
-		"@monup/changelog": "workspace:*",
-		"@monup/git": "workspace:*",
-		"@monup/version": "workspace:*",
-		"loglevel": "catalog:logging"
-	},
-	"devDependencies": {
-		"obuild": "catalog:build",
-		"vitest": "catalog:dev"
-	}
+  "name": "@monup/github",
+  "type": "module",
+  "version": "0.2.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    "types": "./dist/index.d.mts",
+    "import": "./dist/index.mjs",
+    "typescript": "./src/index.ts"
+  },
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node build.config.ts",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "@monup/changelog": "workspace:*",
+    "@monup/git": "workspace:*",
+    "@monup/version": "workspace:*",
+    "loglevel": "catalog:logging"
+  },
+  "devDependencies": {
+    "obuild": "catalog:build",
+    "vitest": "catalog:dev"
+  }
 }
