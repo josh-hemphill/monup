@@ -22,6 +22,7 @@ const config: MonupOptions = defineConfig({
 	},
 	github: {
 		changelogMethod: 'auto',
+		releaseRepo: 'josh-hemphill/monup',
 	},
 });
 
